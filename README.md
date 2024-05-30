@@ -2,7 +2,7 @@
 
 Perfanno-vscode is a simple extension that allows users to annotate buffers using perf output information. The result is a beatiful heatmap showing developers where performance bottlenecks are slowing down their program.
 
-![Example](example-transparent.png)
+![Example](https://github.com/alexdalat/perfanno-vscode/blob/main/example-transparent.png?raw=true)
 
 ## Notes
 
