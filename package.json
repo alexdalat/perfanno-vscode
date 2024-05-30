@@ -8,10 +8,6 @@
   },
   "publisher": "alexd",
   "icon": "icon-128.png",
-  "galleryBanner": {
-    "color": "#cad3f5",
-    "theme": "dark"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/alexdalat/perfanno-vscode.git"
