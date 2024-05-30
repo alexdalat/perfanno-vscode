@@ -2,25 +2,25 @@
   "name": "perfanno",
   "displayName": "perfanno",
   "description": "Annotates source code with perf information.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "engines": {
     "vscode": "^1.89.0"
   },
   "publisher": "alexd",
-	"icon": "icon-128.png",
+  "icon": "icon-128.png",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/alexdalat/perfanno-vscode.git"
   },
-	"keywords": [
-		"perf",
-		"annotation",
-		"source code",
-		"highlight",
-		"performance"
-	],
+  "keywords": [
+    "perf",
+    "annotation",
+    "source code",
+    "highlight",
+    "performance"
+  ],
   "categories": [
-		"Visualization",
+    "Visualization",
     "Other"
   ],
   "activationEvents": [],
