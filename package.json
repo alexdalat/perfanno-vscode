@@ -6,6 +6,11 @@
   "engines": {
     "vscode": "^1.89.0"
   },
+	"publisher": "alexd",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/alexdalat/perfanno-vscode.git"
+	},
   "categories": [
     "Other"
   ],
