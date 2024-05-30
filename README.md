@@ -42,7 +42,7 @@ This command will always be the same. Therefore, if desired, one can chain both 
 perf_record ./my_program --some-arg < some_input_etc && perf_report
 ```
 
-3. (optional) If you are doing remote development and want to see the heatmap on your local machine (as I often do), you can use `scp` to copy the `perf.out` file to your local machine. Then, run `sed -i '' "s:{REMOTE_DIRECTORY}:{LOCAL_DIRECTORY}:g" "{FILE}"` to replace any instances of the remote directory with the local directory in the perf report.
+3. (optional) If you are doing remote development and want to see the heatmap on your local machine (as I often do), you can use `scp` to copy the `perf.out` file to your local machine. Then, run `sed -i '' "s:{REMOTE_DIRECTORY}:{LOCAL_DIRECTORY}:g" "perf.out"` to replace any instances of the remote directory with the local directory in the perf report.
 
 3. Open a source file in vscode and run the `perfanno.readFile` (`Perfanno: Read File`) command using the command palette. Select the `perf.out` file generated in the previous step. Profit.
 
