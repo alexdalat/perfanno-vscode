@@ -2,15 +2,15 @@
   "name": "perfanno",
   "displayName": "perfanno",
   "description": "Annotates source code with perf information.",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "engines": {
     "vscode": "^1.89.0"
   },
-	"publisher": "alexd",
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/alexdalat/perfanno-vscode.git"
-	},
+  "publisher": "alexd",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexdalat/perfanno-vscode.git"
+  },
   "categories": [
     "Other"
   ],
@@ -22,34 +22,38 @@
         "command": "perfanno.highlightLine",
         "title": "Perfanno: highlightLine"
       },
-			{
-				"command": "perfanno.readFile",
-				"title": "Perfanno: Read File"
-			},
-			{
-				"command": "perfanno.clearHighlights",
-				"title": "Perfanno: Clear Highlights"
-			}
+      {
+        "command": "perfanno.readFile",
+        "title": "Perfanno: Read File"
+      },
+      {
+        "command": "perfanno.clearHighlights",
+        "title": "Perfanno: Clear Highlights"
+      }
     ],
-		"configuration": {
+    "configuration": {
       "title": "Perfanno",
       "properties": {
         "perfanno.eventOutputType": {
           "type": "string",
           "default": "percentage",
-					"enum": ["percentage", "count", "percentage and count"],
+          "enum": [
+            "percentage",
+            "count",
+            "percentage and count"
+          ],
           "description": "Specifies the output format for virtual text when annotating."
         },
-				"perfanno.highlightColor": {
-					"type": "string",
-					"default": "#FF0000",
-					"description": "Specifies the color of the highlight in hex (ex: #FF0000 for red)."
-				},
-				"perfanno.minimumThreshold": {
-					"type": "number",
-					"default": 0,
-					"description": "Specifies the minimum percentage threshold for annotating (0.0-1.0)."
-				}
+        "perfanno.highlightColor": {
+          "type": "string",
+          "default": "#FF0000",
+          "description": "Specifies the color of the highlight in hex (ex: #FF0000 for red)."
+        },
+        "perfanno.minimumThreshold": {
+          "type": "number",
+          "default": 0,
+          "description": "Specifies the minimum percentage threshold for annotating (0.0-1.0)."
+        }
       }
     }
   },
