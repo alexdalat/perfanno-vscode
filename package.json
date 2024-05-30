@@ -7,11 +7,20 @@
     "vscode": "^1.89.0"
   },
   "publisher": "alexd",
+	"icon": "icon-128.png",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/alexdalat/perfanno-vscode.git"
   },
+	"keywords": [
+		"perf",
+		"annotation",
+		"source code",
+		"highlight",
+		"performance"
+	],
   "categories": [
+		"Visualization",
     "Other"
   ],
   "activationEvents": [],
