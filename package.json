@@ -2,16 +2,16 @@
   "name": "perfanno",
   "displayName": "perfanno",
   "description": "Annotates source code with perf information.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "engines": {
     "vscode": "^1.89.0"
   },
   "publisher": "alexd",
   "icon": "icon-128.png",
-	"galleryBanner": {
-		"color": "#25273A",
-		"theme": "dark"
-	},
+  "galleryBanner": {
+    "color": "#25273A",
+    "theme": "dark"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/alexdalat/perfanno-vscode.git"
