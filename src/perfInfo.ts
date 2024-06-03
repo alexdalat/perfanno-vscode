@@ -5,9 +5,16 @@ let M = {
 	hasData: false,
 	data: {} as PerfData,
 	events: [] as string[],
-	callgraphs: {} as { [key: string]: any },
+	callgraphs: {} as { 
+		[key: string]: {
+			nodeInfo: { [key: string]: { [key: number]: { count: number; rec_count: number; out_counts: { [key: string]: number; }; in_counts: { [key: string]: number; }; }; }; };
+			symbols: { [key: string]: { count: number; min_line: number | null; max_line: number | null; }; };
+			totalCount: number;
+			maxCount: number;
+		}; 
+	},
 
-	config: {} as { [key: string]: any },
+	config: {} as { [key: string]: any }
 };
 
 M.config = {
@@ -265,8 +272,8 @@ export function add_annotation(filePath: string, event: string, linenr: number, 
 	if(M.config.localRelative) {
 		let t_count = 0;
 		for (const [filename, line_and_counts] of Object.entries(info.in_counts)) {
-			for(const [linenr, count] of Object.entries(line_and_counts)) {
-				t_count += M.callgraphs[event].nodeInfo[filename][linenr].rec_count;
+			for(const [lr, count] of Object.entries(line_and_counts)) {
+				t_count += M.callgraphs[event].nodeInfo[filename][parseInt(lr)].rec_count;
 			}
 		}
 		if(t_count > 0) {

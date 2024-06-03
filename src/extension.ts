@@ -36,7 +36,7 @@ function syncConfig() {
 	for (let i = 0; i < config_keys.length; i++) {
 		let val = vscode.workspace.getConfiguration('perfanno').get(config_keys[i]);
 		if(typeof config_mod_funcs[i] === 'function') {
-			val = config_mod_funcs[i](val);
+			val = config_mod_funcs[i]?.(val as string);
 		}
 		perfInfo.setConfig(config_keys[i], val);
 	}
