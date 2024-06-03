@@ -43,17 +43,21 @@ function syncConfig() {
 }
 
 function reannotate() {
-	syncConfig();
-	LineHighlighter.clear();  // clears annotations
-	perfInfo.addAnnotations();  // stores annotations in LineHighlighter
-	LineHighlighter.applyMultiHighlights(getAllActiveBuffers());  // draw annotations on active tabs
+	try {
+		syncConfig();
+		LineHighlighter.clear();  // clears annotations
+		perfInfo.addAnnotations();  // stores annotations in LineHighlighter
+		LineHighlighter.applyMultiHighlights(getAllActiveBuffers());  // draw annotations on active tabs
+	} catch (e) {
+		vscode.window.showErrorMessage(String(e));
+	}
 }
 
 export function activate(context: vscode.ExtensionContext) {
 
 	// when changing text editor, apply highlights
 	vscode.window.onDidChangeActiveTextEditor(editor => {
-		if (editor && perfInfo.shouldAnnotate()) {
+		if (editor && perfInfo.isLoaded()) {
 			LineHighlighter.applyHighlights(editor);
 		}
 	}, null, context.subscriptions);
@@ -61,7 +65,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// when changing configuration, reapply highlights
 	context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(event => {
 		let affected = is_affected(event);
-		if (affected && perfInfo.shouldAnnotate()) {
+		if (affected && perfInfo.isLoaded()) {
 			reannotate();
 		}
 	}));
@@ -75,6 +79,32 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	}));
 
+	context.subscriptions.push(vscode.commands.registerCommand('perfanno.pickEvent', () => {
+		if(!perfInfo.isLoaded()) {
+			vscode.window.showInformationMessage("Can't select: no perf data loaded");
+			return;
+		}
+		let events = perfInfo.getEvents();
+		let events_formatted = events.map((event) => {
+			return {
+				label: event,
+				event: event
+			};
+		});
+		vscode.window.showQuickPick(events_formatted, {
+			placeHolder: 'Select event to highlight'
+		}).then((selected) => {
+			if (selected) {
+				try {
+					perfInfo.selectEvent(selected.event);
+					reannotate();
+				} catch (e) {
+					vscode.window.showErrorMessage(String(e));
+				}
+			}
+		});
+		
+	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('perfanno.readFile', () => {
 		vscode.window.showOpenDialog({ canSelectFiles: true, canSelectFolders: false, canSelectMany: false, title: 'Select perf.out file' }).then((uris) => {

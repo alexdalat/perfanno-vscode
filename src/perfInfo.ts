@@ -5,6 +5,7 @@ let M = {
 	hasData: false,
 	data: {} as PerfData,
 	events: [] as string[],
+	current_event: "",
 	callgraphs: {} as { 
 		[key: string]: {
 			nodeInfo: { [key: string]: { [key: number]: { count: number; rec_count: number; out_counts: { [key: string]: number; }; in_counts: { [key: string]: number; }; }; }; };
@@ -273,6 +274,9 @@ export function add_annotation(filePath: string, event: string, linenr: number, 
 		let t_count = 0;
 		for (const [filename, line_and_counts] of Object.entries(info.in_counts)) {
 			for(const [lr, count] of Object.entries(line_and_counts)) {
+				if(!M.callgraphs[event].nodeInfo[filename][parseInt(lr)]) {	
+					continue;
+				}
 				t_count += M.callgraphs[event].nodeInfo[filename][parseInt(lr)].rec_count;
 			}
 		}
@@ -308,13 +312,10 @@ export function add_annotation(filePath: string, event: string, linenr: number, 
 // Annotates a buffer with call graph information.
 //	@param filePath Path to buffer.
 //	@param event Event to use for annotation.
+// Precondition: M.callgraphs[event] must exist.
 export function annotateBuffer(filePath: any, event: string): void {
 	if (!filePath) {
 		return; // Buffer is not a file.
-	}
-
-	if (!M.callgraphs[event]) {
-		throw new Error(`annotateBuffer: event ${event} does not exist`);
 	}
 
 	if (!M.callgraphs[event].nodeInfo[filePath]) {
@@ -333,15 +334,30 @@ export function annotateBuffer(filePath: any, event: string): void {
 //	@param buffers Array of buffer paths to annotate.
 //	@param event Event to use for annotation. If not given, uses the first event.
 // Precondition: M.callgraphs[event] must exist.
-export function addAnnotations(event?: string | undefined): void {
-	let e = event || M.events[0];
+export function addAnnotations(): void {
+	let e = (M.current_event !== "" ? M.current_event : M.events[0]);
+	if(!M.callgraphs[e]) {
+		throw new Error(`addAnnotations: event ${e} does not exist`);
+	}
 	for (const file in M.callgraphs[e].nodeInfo) {
 		annotateBuffer(file, e);
 	}
 }
 
-export function shouldAnnotate(): boolean {
+export function isLoaded(): boolean {
 	return M.hasData;
+}
+
+export function getEvents(): string[] {
+	return M.events;
+}
+
+export function selectEvent(event: string): void {
+	if (!M.callgraphs[event]) {
+		throw new Error(`selectEvent: event ${event} does not exist`);
+	}
+
+	M.current_event = event;
 }
 
 export function setConfig(key: string, value: any): void {
