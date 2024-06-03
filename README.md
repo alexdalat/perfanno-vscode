@@ -25,6 +25,11 @@ or alternatively, use the following alias by adding it to your `.bashrc` or `.zs
 and run:
 `perf_record ./my_program --some-arg < some_input_etc`
 
+Customization:
+ * `-e` flag can be used to specify the event to profile. By default, it records cpu-cycles. See `perf list` for a list of events.
+ * `-F` flag can be used to specify the frequency of the event. For example, `-F 1000` will sample every 1000 events.
+ * And many more. See `man perf-record` for more information.
+
 2. Generate a report:
 
 ```bash
@@ -51,21 +56,15 @@ perf_record ./my_program --some-arg < some_input_etc && perf_report
 ## Extension Commands
 
 * `perfanno.readFile`: Prompts for a file and annotates buffers with with the perf information.
+* `perfanno.pickEvent`: Select a perf event to annotate.
 * `perfanno.clearHighlights`: Clears all annotations and highlights.
 * `perfanno.highlight`: Highlights the current line. Used to test certain highlighter capabilities.
 
 ## Extension Settings
 
 * `perfanno.eventOutputType`: Specifies the output format for virtual text when annotating.
-* `perfanno.highlightColor`: Specifies the color of the highlight. 
-* `perfanno.minimumThreshold`: Specifies the minimum percentage threshold for annotating.
-
----
-
-## Release Notes
-
-### 1.0.0
-
-Initial release of perfanno-vscode
+* `perfanno.localRelative`: Whether to show count relative to enclosing symbol (high sample count recommended).
+* `perfanno.highlightColor`: The color of the highlight. 
+* `perfanno.minimumThreshold`: The minimum percentage threshold for annotating.
 
 ---

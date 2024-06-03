@@ -20,8 +20,8 @@ function hexToRgb(hex: string) {
   ] : null;
 }
 
-const config_keys = ['eventOutputType', 'localRelative', 'highlightColor', 'minimumThreshold'];
-const config_mod_funcs = [null, null, hexToRgb, null];
+const config_keys = 		 ['eventOutputType', 'localRelative', 'highlightColor', 'minimumThreshold'];
+const config_mod_funcs = [ null, 							null,            hexToRgb,         null];
 
 function is_affected(event: vscode.ConfigurationChangeEvent): boolean {
 	for (let key of config_keys) {
