@@ -2,7 +2,7 @@
   "name": "perfanno",
   "displayName": "perfanno",
   "description": "Annotates source code with perf information.",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "engines": {
     "vscode": "^1.89.0"
   },
@@ -35,10 +35,10 @@
         "command": "perfanno.readFile",
         "title": "Perfanno: Read File"
       },
-			{
-				"command": "perfanno.pickEvent",
-				"title": "Perfanno: Pick Event"
-			},
+      {
+        "command": "perfanno.pickEvent",
+        "title": "Perfanno: Pick Event"
+      },
       {
         "command": "perfanno.clearHighlights",
         "title": "Perfanno: Clear Highlights"
@@ -56,11 +56,11 @@
           ],
           "description": "The output format for virtual text when annotating."
         },
-				"perfanno.localRelative": {
-					"type": "boolean",
-					"default": false,
-					"description": "Whether to show count relative to enclosing symbol (high sample count recommended)."
-				},
+        "perfanno.localRelative": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether to show count relative to enclosing symbol (high sample count recommended)."
+        },
         "perfanno.highlightColor": {
           "type": "string",
           "default": "#FF0000",
