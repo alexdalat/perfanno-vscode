@@ -20,10 +20,26 @@ function hexToRgb(hex: string) {
   ] : null;
 }
 
+const config_keys = ['eventOutputType', 'localRelative', 'highlightColor', 'minimumThreshold'];
+const config_mod_funcs = [null, null, hexToRgb, null];
+
+function is_affected(event: vscode.ConfigurationChangeEvent): boolean {
+	for (let key of config_keys) {
+		if (event.affectsConfiguration(`perfanno.${key}`)) {
+			return true;
+		}
+	}
+	return false;
+}
+
 function syncConfig() {
-	perfInfo.setConfig('eventOutputType', vscode.workspace.getConfiguration('perfanno').get('eventOutputType', "percentage"));
-	perfInfo.setConfig('hcolor', hexToRgb(vscode.workspace.getConfiguration('perfanno').get('highlightColor', "#FF0000")));
-	perfInfo.setConfig('minThreshold', vscode.workspace.getConfiguration('perfanno').get('minimumThreshold', 0));
+	for (let i = 0; i < config_keys.length; i++) {
+		let val = vscode.workspace.getConfiguration('perfanno').get(config_keys[i]);
+		if(typeof config_mod_funcs[i] === 'function') {
+			val = config_mod_funcs[i](val);
+		}
+		perfInfo.setConfig(config_keys[i], val);
+	}
 }
 
 function reannotate() {
@@ -37,15 +53,15 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// when changing text editor, apply highlights
 	vscode.window.onDidChangeActiveTextEditor(editor => {
-		if (editor) {
+		if (editor && perfInfo.shouldAnnotate()) {
 			LineHighlighter.applyHighlights(editor);
 		}
 	}, null, context.subscriptions);
 
 	// when changing configuration, reapply highlights
 	context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(event => {
-		let affected = event.affectsConfiguration("perfanno.eventOutputType") || event.affectsConfiguration("perfanno.highlightColor") || event.affectsConfiguration("perfanno.minimumThreshold");
-		if (affected) {
+		let affected = is_affected(event);
+		if (affected && perfInfo.shouldAnnotate()) {
 			reannotate();
 		}
 	}));
@@ -74,7 +90,6 @@ export function activate(context: vscode.ExtensionContext) {
 			vscode.window.showInformationMessage(`Loaded ${totalCount} traces from ${fileStr}`);
 		});
 	}));
-
 
 	context.subscriptions.push(vscode.commands.registerCommand('perfanno.clearHighlights', () => {
 		LineHighlighter.clear();

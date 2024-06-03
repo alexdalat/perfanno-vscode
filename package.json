@@ -35,6 +35,10 @@
         "command": "perfanno.readFile",
         "title": "Perfanno: Read File"
       },
+			{
+				"command": "perfanno.pickEvent",
+				"title": "Perfanno: Pick Event"
+			},
       {
         "command": "perfanno.clearHighlights",
         "title": "Perfanno: Clear Highlights"
@@ -45,23 +49,27 @@
       "properties": {
         "perfanno.eventOutputType": {
           "type": "string",
-          "default": "percentage",
+          "default": "percentage and count",
           "enum": [
             "percentage",
-            "count",
             "percentage and count"
           ],
-          "description": "Specifies the output format for virtual text when annotating."
+          "description": "The output format for virtual text when annotating."
         },
+				"perfanno.localRelative": {
+					"type": "boolean",
+					"default": false,
+					"description": "Whether to show count relative to enclosing symbol (high sample count recommended)."
+				},
         "perfanno.highlightColor": {
           "type": "string",
           "default": "#FF0000",
-          "description": "Specifies the color of the highlight in hex (ex: #FF0000 for red)."
+          "description": "The color of the highlight in hex (ex: #FF0000 for red)."
         },
         "perfanno.minimumThreshold": {
           "type": "number",
           "default": 0,
-          "description": "Specifies the minimum percentage threshold for annotating (0.0-1.0)."
+          "description": "The minimum percentage threshold for annotating (0.0-1.0)."
         }
       }
     }

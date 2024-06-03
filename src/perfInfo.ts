@@ -12,8 +12,9 @@ let M = {
 
 M.config = {
 	eventOutputType: "percentage",
-	hcolor: [255, 0, 0],
-	minThreshold: 0
+	localRelative: false,
+	highlightColor: [255, 0, 0],
+	minimumThreshold: 0
 };
 
 let realNames = {} as { [key: string]: string };
@@ -33,6 +34,15 @@ export interface PerfData {
 	[key: string]: TraceData[];
 }
 
+// Reads a perf callgraph file and returns the data.
+//	@param perfDataPath Path to perf callgraph file.
+//	@return Table with the following fields:
+//		- event: List of tables with the following fields:
+//			- count: Number of times this stack trace occurred.
+//			- frames: List of frames in the stack trace with the following fields:
+//				- symbol: Symbol name.
+//				- file: File name.
+//				- linenr: Line number.
 export function perfCallgraphFile(perfDataPath: string): PerfData {
 	const result: PerfData = {};
 	let currentEvent: string | undefined;
@@ -122,7 +132,7 @@ export function frame_unpack(frame: Frame | string): [string | undefined, string
 // Processes a list of stack traces into the call graph information.
 //	@param traces List of tables of the form {count = 15, frames = {f1, f2, f3, ...}}. The count
 //       represents how many times this exact stack trace occurs and each frame should be in the
-//       format expected by frame_unpack. See also :help perfanno-extensions.
+//       format expected by frame_unpack.
 //	@return node info, total count, max count, symbols
 export function processTraces(traces: TraceData[]): any {
 	let nodeInfo: any = { symbol: {} };
@@ -218,6 +228,7 @@ export function processTraces(traces: TraceData[]): any {
 
 // Loads given list of stack traces into call graph.
 // 	@param traces Stack traces to be loaded. For format see :help perfanno-extensions.
+//	@return Total number of traces loaded.
 export function loadTraces(traces: PerfData): number {
 	M.events = [];
 	M.callgraphs = {};
@@ -235,15 +246,38 @@ export function loadTraces(traces: PerfData): number {
 	return total;
 }
 
-
-
-export function add_annotation(uriPath: string, linenr: number, info: any, total_count: number, max_count: number): void {
-	if(info.count / total_count < M.config.minThreshold) {
+// Highlights a line in a buffer.
+//	@param uriPath Path to buffer.
+//  @param event Event to use for annotation.
+//	@param linenr Line number to highlight.
+//	@param info Table with the following fields:
+//		- count: Number of times this line was hit.
+//		- rec_count: Number of times this line was hit including recursive calls.
+//		- out_counts: Table describing how many times child lines were called.
+//    - in_counts: Table showing how many times the enclosing symbol was called.
+//  @param total_count Total number of traces.
+//  @param max_count Maximum count of a single line.
+export function add_annotation(filePath: string, event: string, linenr: number, info: { count: number; rec_count: number; out_counts: { [key: string]: number; }; in_counts: { [key: string]: number; }; }, total_count: number, max_count: number): void {
+	if(info.count / total_count < M.config.minimumThreshold) {
 		return;
 	}
+
+	if(M.config.localRelative) {
+		let t_count = 0;
+		for (const [filename, line_and_counts] of Object.entries(info.in_counts)) {
+			for(const [linenr, count] of Object.entries(line_and_counts)) {
+				t_count += M.callgraphs[event].nodeInfo[filename][linenr].rec_count;
+			}
+		}
+		if(t_count > 0) {
+			total_count = t_count;
+			max_count = total_count;
+		}
+	}
+
 	// virtual text
 	const count = info.count;
-	const col = M.config.hcolor ? M.config.hcolor : [255, 0, 0];
+	const col = M.config.highlightColor ? M.config.highlightColor : [255, 0, 0];
 	let opts = {
 		after: {
 			contentText: '',
@@ -256,17 +290,17 @@ export function add_annotation(uriPath: string, linenr: number, info: any, total
 		case "percentage":
 			opts.after.contentText = Math.round(count / total_count * 10000) / 100 + '%';
 			break;
-		case "count":
-			opts.after.contentText = count + '/' + total_count;
-			break;
 		case "percentage and count":
 			opts.after.contentText = Math.round(count / total_count * 10000) / 100 + '% (' + count + '/' + total_count + ')';
 			break;
 	};
 
-	LineHighlighter.highlightLine(uriPath, linenr - 1, opts);
+	LineHighlighter.highlightLine(filePath, linenr - 1, opts);
 }
 
+// Annotates a buffer with call graph information.
+//	@param filePath Path to buffer.
+//	@param event Event to use for annotation.
 export function annotateBuffer(filePath: any, event: string): void {
 	if (!filePath) {
 		return; // Buffer is not a file.
@@ -284,7 +318,7 @@ export function annotateBuffer(filePath: any, event: string): void {
 	const max_count = M.callgraphs[event].maxCount;
 
 	for (const [linenr, info] of Object.entries(M.callgraphs[event].nodeInfo[filePath])) {
-		add_annotation(filePath, parseInt(linenr), info, total_count, max_count);
+		add_annotation(filePath, event, parseInt(linenr), info, total_count, max_count);
 	}
 }
 
@@ -294,10 +328,13 @@ export function annotateBuffer(filePath: any, event: string): void {
 // Precondition: M.callgraphs[event] must exist.
 export function addAnnotations(event?: string | undefined): void {
 	let e = event || M.events[0];
-
 	for (const file in M.callgraphs[e].nodeInfo) {
 		annotateBuffer(file, e);
 	}
+}
+
+export function shouldAnnotate(): boolean {
+	return M.hasData;
 }
 
 export function setConfig(key: string, value: any): void {
