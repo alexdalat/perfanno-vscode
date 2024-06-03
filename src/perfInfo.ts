@@ -266,10 +266,6 @@ export function loadTraces(traces: PerfData): number {
 //  @param total_count Total number of traces.
 //  @param max_count Maximum count of a single line.
 export function add_annotation(filePath: string, event: string, linenr: number, info: { count: number; rec_count: number; out_counts: { [key: string]: number; }; in_counts: { [key: string]: number; }; }, total_count: number, max_count: number): void {
-	if(info.count / total_count < M.config.minimumThreshold) {
-		return;
-	}
-
 	if(M.config.localRelative) {
 		let t_count = 0;
 		for (const [filename, line_and_counts] of Object.entries(info.in_counts)) {
@@ -284,6 +280,10 @@ export function add_annotation(filePath: string, event: string, linenr: number, 
 			total_count = t_count;
 			max_count = total_count;
 		}
+	}
+
+	if(info.count / total_count < M.config.minimumThreshold) {
+		return;
 	}
 
 	// virtual text
