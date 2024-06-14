@@ -286,6 +286,12 @@ export function add_annotation(filePath: string, event: string, linenr: number, 
 		return;
 	}
 
+	// https://github.com/alexdalat/perfanno-vscode/issues/1
+	// fix when line2addr can't determine line number
+	if(linenr <= 0) {
+		return;
+	}
+
 	// virtual text
 	const count = info.count;
 	const col = M.config.highlightColor ? M.config.highlightColor : [255, 0, 0];
