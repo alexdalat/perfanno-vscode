@@ -2,7 +2,7 @@
   "name": "perfanno",
   "displayName": "perfanno",
   "description": "Annotates source code with perf information.",
-  "version": "1.0.8",
+  "version": "1.1.0",
   "engines": {
     "vscode": "^1.89.0"
   },
