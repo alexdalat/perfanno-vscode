@@ -6,7 +6,7 @@ Perfanno-vscode is a simple extension that allows users to annotate buffers usin
 
 ## Notes
 
-* **Most of the code is taken directly from https://github.com/t-troebst/perfanno.nvim. I am not the original author of the code. I simply ported it to vscode/typescript and added a few features.**
+* **Most of the processing algorithm is taken directly from https://github.com/t-troebst/perfanno.nvim. I am not the original author of the code. I simply ported it to vscode/typescript and added a few features.**
 * This extension is still in beta. It is not expansive in any way, but it does the job simply and effectively. If it gets any traction, I'll be sure to add more features.
 * Only C++ programs on MacOS (with perf on Ubuntu) have been tested (by me). But anything that perf can profile should work.
 * Please report any issues you may find.
