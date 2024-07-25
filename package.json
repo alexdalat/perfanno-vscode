@@ -2,7 +2,7 @@
   "name": "perfanno",
   "displayName": "perfanno",
   "description": "Annotates source code with perf information.",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "engines": {
     "vscode": "^1.89.0"
   },
@@ -51,7 +51,7 @@
           "type": "string",
           "default": "percentage",
           "enum": [
-						"count",
+            "count",
             "percentage",
             "percentage and count"
           ],
@@ -72,11 +72,11 @@
           "default": 0,
           "description": "The minimum percentage threshold for annotating (0.0-1.0)."
         },
-				"perfanno.file": {
-					"type": "string",
-					"default": "perf.out",
-					"description": "Perf data to search for in project root. Will prompt with finder if file does not exist. Can be a file path (ex: 'perf.output' or 'path/to/perf.txt')."
-				}
+        "perfanno.file": {
+          "type": "string",
+          "default": "perf.out",
+          "description": "Perf data to search for in project root. Will prompt with finder if file does not exist. Can be a file path (ex: 'perf.output' or 'path/to/perf.txt')."
+        }
       }
     }
   },
