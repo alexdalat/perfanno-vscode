@@ -62,6 +62,7 @@ perf_record ./my_program --some-arg < some_input_etc && perf_report
 
 ## Extension Settings
 
+* `perfanno.file`: Perf datafile to search for by default. Will prompt with finder if file does not exist. Can be a file path.
 * `perfanno.eventOutputType`: Specifies the output format for virtual text when annotating.
 * `perfanno.localRelative`: Whether to show count relative to enclosing symbol (high sample count recommended).
 * `perfanno.highlightColor`: The color of the highlight. 

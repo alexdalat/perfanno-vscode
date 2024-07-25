@@ -49,8 +49,9 @@
       "properties": {
         "perfanno.eventOutputType": {
           "type": "string",
-          "default": "percentage and count",
+          "default": "percentage",
           "enum": [
+						"count",
             "percentage",
             "percentage and count"
           ],
@@ -70,7 +71,12 @@
           "type": "number",
           "default": 0,
           "description": "The minimum percentage threshold for annotating (0.0-1.0)."
-        }
+        },
+				"perfanno.file": {
+					"type": "string",
+					"default": "perf.out",
+					"description": "Perf data to search for in project root. Will prompt with finder if file does not exist. Can be a file path (ex: 'perf.output' or 'path/to/perf.txt')."
+				}
       }
     }
   },

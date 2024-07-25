@@ -18,11 +18,10 @@ let M = {
 	config: {} as { [key: string]: any }
 };
 
-M.config = {
-	eventOutputType: "percentage",
-	localRelative: false,
-	highlightColor: [255, 0, 0],
-	minimumThreshold: 0
+export enum EventOutputType {
+	count,
+	percentage,
+	percentage_and_count
 };
 
 let realNames = {} as { [key: string]: string };
@@ -304,12 +303,17 @@ export function add_annotation(filePath: string, event: string, linenr: number, 
 		backgroundColor: `rgba(${col[0]}, ${col[1]}, ${col[2]}, ${count / max_count})`,
 	};
 	switch(M.config.eventOutputType) {
-		case "percentage":
+		case EventOutputType.percentage:
 			opts.after.contentText = Math.round(count / total_count * 10000) / 100 + '%';
 			break;
-		case "percentage and count":
+		case EventOutputType.percentage_and_count:
 			opts.after.contentText = Math.round(count / total_count * 10000) / 100 + '% (' + count + '/' + total_count + ')';
 			break;
+		case EventOutputType.count:
+			opts.after.contentText = count.toString() + '/' + total_count;
+			break;
+		default:
+			throw new Error(`add_annotation: unknown eventOutputType ${M.config.eventOutputType}`);
 	};
 
 	LineHighlighter.highlightLine(filePath, linenr - 1, opts);

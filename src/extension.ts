@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import * as perfInfo from './perfInfo';
 import { LineHighlighter } from './LineHighlighter';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // from: https://stackoverflow.com/questions/70346445/how-to-get-all-opened-files-with-vscode-api
 export function getAllActiveBuffers(): vscode.TextEditor[] {
@@ -20,8 +22,21 @@ function hexToRgb(hex: string) {
   ] : null;
 }
 
-const config_keys = 		 ['eventOutputType', 'localRelative', 'highlightColor', 'minimumThreshold'];
-const config_mod_funcs = [ null, 							null,            hexToRgb,         null];
+function strToOutputType(str: string) {
+	switch (str) {
+		case 'count':
+			return perfInfo.EventOutputType.count;
+		case 'percentage':
+			return perfInfo.EventOutputType.percentage;
+		case 'percentage and count':
+			return perfInfo.EventOutputType.percentage_and_count;
+		default:
+			throw new Error('Invalid eventOutputType');
+	}
+}
+
+const config_keys = 		 ['eventOutputType', 'localRelative', 'highlightColor', 'minimumThreshold', 'file'];
+const config_mod_funcs = [ strToOutputType, 	null,            hexToRgb,         null,               null];
 
 function is_affected(event: vscode.ConfigurationChangeEvent): boolean {
 	for (let key of config_keys) {
@@ -64,8 +79,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// when changing configuration, reapply highlights
 	context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(event => {
-		let affected = is_affected(event);
-		if (affected && perfInfo.isLoaded()) {
+		if (is_affected(event) && perfInfo.isLoaded()) {
 			reannotate();
 		}
 	}));
@@ -106,19 +120,46 @@ export function activate(context: vscode.ExtensionContext) {
 		
 	}));
 
-	context.subscriptions.push(vscode.commands.registerCommand('perfanno.readFile', () => {
-		vscode.window.showOpenDialog({ canSelectFiles: true, canSelectFolders: false, canSelectMany: false, title: 'Select perf.out file' }).then((uris) => {
-			if (uris === undefined) {
-				vscode.window.showErrorMessage('No file selected');
-				return;
+	context.subscriptions.push(vscode.commands.registerCommand('perfanno.readFile', async () => {
+		var fileStr = undefined;
+
+		// if file defined by `file` setting exists, load it. Else, fallback to prompting
+		// check using workspace root, or cwd root
+		try {
+			const workspaceFolder = vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders[0].uri.fsPath : process.cwd();
+			if (!workspaceFolder) {
+				throw new Error('No workspace or active folder found');
 			}
-			const fileStr = uris[0].fsPath;
-			const totalCount = perfInfo.loadTraces(perfInfo.perfCallgraphFile(fileStr));
 
-			reannotate();
+			syncConfig();
+			const relFilePath = perfInfo.getConfig('file');
+			if (!relFilePath) {
+				throw new Error('No file defined in configuration');
+			}
 
-			vscode.window.showInformationMessage(`Loaded ${totalCount} traces from ${fileStr}`);
-		});
+			const absFilePath = path.join(workspaceFolder, relFilePath);
+			if (!fs.existsSync(absFilePath)) {
+				throw new Error(`File ${absFilePath} not found`);
+			}
+
+			fileStr = absFilePath;
+		} catch (e) {
+			fileStr = await vscode.window.showOpenDialog({ canSelectFiles: true, canSelectFolders: false, canSelectMany: false, title: 'Select perf.out file' }).then((uris) => {
+				if (uris === undefined) {
+					return;
+				}
+				return uris[0].fsPath;
+			});
+		}
+
+		if (fileStr === undefined) {
+			vscode.window.showErrorMessage('No file selected');
+			return;
+		}
+
+		const totalCount = perfInfo.loadTraces(perfInfo.perfCallgraphFile(fileStr));
+		reannotate();
+		vscode.window.showInformationMessage(`Loaded ${totalCount} traces from ${fileStr}`);
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('perfanno.clearHighlights', () => {
