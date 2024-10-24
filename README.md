@@ -75,7 +75,7 @@ This command will always be the same. Therefore, if desired, one can chain both 
 
 <br>
 
-4. Open a source file in vscode and run the `perfanno.readFile` (`Perfanno: Read File`) command using the command palette. Select the `perf.out` file generated in the previous step. Profit.
+4. Open a source file in vscode and run the `perfanno.readFile` (`Perfanno: Read File`) command using the command palette. Select the `perf.out` file generated in the previous step. Success!
 
 ---
 
