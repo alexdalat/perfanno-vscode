@@ -26,19 +26,25 @@ perf record --call-graph dwarf ./my_program --some-arg < some_input_etc
 ```
 
 <sub>
-optionally, use the following alias by adding it to your `.bashrc` or `.zshrc`:
   
-`alias perf_record="perf record --call-graph dwarf"`
+optionally, use the following alias by adding it to your `.bashrc` or `.zshrc`:
+
+```bash
+alias perf_record="perf record --call-graph dwarf"
+```
 
 and run:
 `perf_record ./my_program --some-arg < some_input_etc`
 
 </sub>
+<br>
 
-Customization:
+*Customization*:
  * `-e` flag can be used to specify the event to profile. By default, it records cpu-cycles. See `perf list` for a list of events.
  * `-F` flag can be used to specify the frequency of the event. For example, `-F 1000` will sample every 1000 events.
  * And many more. See `man perf-record` for more information.
+
+<br>
 
 2. Generate a report:
 
@@ -48,8 +54,10 @@ perf report -g folded,0,caller,srcline,branch,count --no-children --full-source-
 
 <sub>
 again, you can also use the following alias:
-  
-`alias perf_report="perf report -g folded,0,caller,srcline,branch,count --no-children --full-source-path --stdio -i perf.data > perf.out"`
+
+```bash
+alias perf_report="perf report -g folded,0,caller,srcline,branch,count --no-children --full-source-path --stdio -i perf.data > perf.out"
+```
 
 and run: 
 
@@ -61,7 +69,11 @@ This command will always be the same. Therefore, if desired, one can chain both 
 
 </sub>
 
+<br>
+
 3. (optional) If you are doing remote development and want to see the heatmap on your local machine, you can use `scp` to copy the `perf.out` file to your local machine. Then, run `sed -i '' "s:{REMOTE_DIRECTORY}:{LOCAL_DIRECTORY}:g" "perf.out"` to replace any instances of the remote directory with the local directory in the perf report.
+
+<br>
 
 4. Open a source file in vscode and run the `perfanno.readFile` (`Perfanno: Read File`) command using the command palette. Select the `perf.out` file generated in the previous step. Profit.
 
