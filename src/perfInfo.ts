@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import { LineHighlighter } from './LineHighlighter';
+import { workspace } from 'vscode';
 
 let M = {
 	hasData: false,
@@ -73,16 +74,29 @@ export function perfCallgraphFile(perfDataPath: string): PerfData {
 					const traceData: TraceData = { count: count, frames: [] };
 
 					const funcs = traceLine.split(';');
+					let lastLocalLeaf;
+					let workspace_dir = workspace.workspaceFolders?.[0].uri.fsPath.replaceAll("\\", "/");
 					for (const func of funcs) {
 						const funcMatch = func.match(/^(.*?)\s+((?:[a-z]:)?\/.+):(\d+)\s*(?:\(inlined\))?$/);
 
 						if (funcMatch) {
 							const [, symbol, file, linenrStr] = funcMatch;
 							const linenr = parseInt(linenrStr, 10);
-							traceData.frames.push({ symbol: symbol || undefined, file, linenr });
+							if (!M.config.onlyLocalLeaf) {
+								traceData.frames.push({ symbol: symbol || undefined, file, linenr });
+							} else if (workspace_dir && file.startsWith(workspace_dir)) {
+							// Only push last leaf (self() trace) if this is a project file
+								lastLocalLeaf = { symbol: symbol || undefined, file, linenr };
+							} else {
+							// For all other project-external files, push all traces
+								traceData.frames.push({ symbol: symbol || undefined, file, linenr });
+							}
 						} else {
 							traceData.frames.push({ symbol: func });
 						}
+					}
+					if (M.config.onlyLocalLeaf && lastLocalLeaf != undefined) {
+						traceData.frames.push(lastLocalLeaf);
 					}
 
 					if (currentEvent) {
