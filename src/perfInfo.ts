@@ -74,7 +74,7 @@ export function perfCallgraphFile(perfDataPath: string): PerfData {
 
 					const funcs = traceLine.split(';');
 					for (const func of funcs) {
-						const funcMatch = func.match(/^(.*?)\s*(\/.*):(\d+)$/);
+						const funcMatch = func.match(/^(.*?)\s+((?:[a-z]:)?\/.+):(\d+)\s*(?:\(inlined\))?$/);
 
 						if (funcMatch) {
 							const [, symbol, file, linenrStr] = funcMatch;
@@ -125,7 +125,7 @@ export function frame_unpack(frame: Frame | string): [string | undefined, string
 	}
 
 	// frame is a string
-	const match = frame.match(/^(.*?)\s*(\/.*):(\d+)$/);
+	const match = frame.match(/^(.*?)\s+((?:[a-z]:)?\/.+):(\d+)\s*(?:\(inlined\))?$/);
 	if (match) {
 		const [, symbol, file, linenrStr] = match;
 		const linenr = parseInt(linenrStr, 10);
