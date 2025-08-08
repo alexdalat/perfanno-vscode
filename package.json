@@ -76,6 +76,11 @@
           "type": "string",
           "default": "perf.out",
           "description": "Perf data to search for in project root. Will prompt with finder if file does not exist. Can be a file path (ex: 'perf.output' or 'path/to/perf.txt')."
+        },
+        "perfanno.onlyLocalLeaf": {
+          "type": "boolean",
+          "default": false,
+          "description": "Only show the last trace relative to the current project, not previous parent ones (That don't actually have any self() time). (Re-Read File to apply)"
         }
       }
     }

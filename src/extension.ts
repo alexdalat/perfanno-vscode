@@ -35,8 +35,8 @@ function strToOutputType(str: string) {
 	}
 }
 
-const config_keys = 		 ['eventOutputType', 'localRelative', 'highlightColor', 'minimumThreshold', 'file'];
-const config_mod_funcs = [ strToOutputType, 	null,            hexToRgb,         null,               null];
+const config_keys = 		 ['eventOutputType', 'localRelative', 'highlightColor', 'minimumThreshold', 'file', 'onlyLocalLeaf'];
+const config_mod_funcs = [ strToOutputType, 	null,            hexToRgb,         null,               null,	null];
 
 function is_affected(event: vscode.ConfigurationChangeEvent): boolean {
 	for (let key of config_keys) {
