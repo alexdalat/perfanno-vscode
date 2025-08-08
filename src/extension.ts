@@ -22,17 +22,18 @@ function hexToRgb(hex: string) {
   ] : null;
 }
 
-function strToOutputType(str: string) {
-	switch (str) {
-		case 'count':
-			return perfInfo.EventOutputType.count;
-		case 'percentage':
-			return perfInfo.EventOutputType.percentage;
-		case 'percentage and count':
-			return perfInfo.EventOutputType.percentage_and_count;
-		default:
-			throw new Error('Invalid eventOutputType');
+const outputTypeMap: Record<string, perfInfo.EventOutputType> = {
+	'count': perfInfo.EventOutputType.count,
+	'percentage': perfInfo.EventOutputType.percentage,
+	'percentage and count': perfInfo.EventOutputType.percentage_and_count
+};
+
+function strToOutputType(str: string): perfInfo.EventOutputType {
+	const outputType = outputTypeMap[str];
+	if (outputType === undefined) {
+		throw new Error('Invalid eventOutputType');
 	}
+	return outputType;
 }
 
 const config_keys = 		 ['eventOutputType', 'localRelative', 'highlightColor', 'minimumThreshold', 'file', 'onlyLocalLeaf'];
