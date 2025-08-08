@@ -93,5 +93,6 @@ This command will always be the same. Therefore, if desired, one can chain both 
 * `perfanno.localRelative`: Whether to show count relative to enclosing symbol (high sample count recommended).
 * `perfanno.highlightColor`: The color of the highlight. 
 * `perfanno.minimumThreshold`: The minimum percentage threshold for annotating.
+* `perfanno.onlyLocalLeaf`: Collapse each trace to its deepest in-workspace frame.
 
 ---
