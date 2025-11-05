@@ -1,7 +1,6 @@
 # perfanno-vscode
 
 ![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/alexd.perfanno?style=for-the-badge&link=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dalexd.perfanno)
-![Visual Studio Marketplace Downloads](https://img.shields.io/visual-studio-marketplace/d/alexd.perfanno?style=for-the-badge&link=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dalexd.perfanno)
 ![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/alexd.perfanno?style=for-the-badge&label=VSM%20Version&link=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dalexd.perfanno)
 
 Perfanno-vscode is a simple extension that allows users to annotate buffers using perf output information. The result is a beatiful heatmap showing developers where performance bottlenecks are slowing down their program.
