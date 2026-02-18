@@ -2,7 +2,7 @@
   "name": "perfanno",
   "displayName": "perfanno",
   "description": "Annotates source code with perf information.",
-  "version": "1.2.1",
+  "version": "1.4.0",
   "engines": {
     "vscode": "^1.89.0"
   },
@@ -46,6 +46,10 @@
       {
         "command": "perfanno.readPySpyFile",
         "title": "Perfanno: Read Py-Spy File"
+      },
+      {
+        "command": "perfanno.clearStoredFilePaths",
+        "title": "Perfanno: Clear stored default paths to report files"
       }
     ],
     "configuration": {
@@ -76,10 +80,13 @@
           "default": 0,
           "description": "The minimum percentage threshold for annotating (0.0-1.0)."
         },
-        "perfanno.file": {
+        "perfanno.perfFile": {
           "type": "string",
-          "default": "perf.out",
           "description": "Perf data file to search for in project root. Will prompt with finder if file does not exist. Can be a file path (ex: 'perf.output' or 'path/to/perf.txt')."
+        },
+        "perfanno.pyspyFile": {
+          "type": "string",
+          "description": "Py-Spy raw file to search for in project root. Will prompt with finder if file does not exist. Can be a file path (ex: 'path/to/pyspy.txt')."
         },
         "perfanno.onlyLocalLeaf": {
           "type": "boolean",

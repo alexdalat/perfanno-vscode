@@ -153,8 +153,9 @@ export function pyspyCallgraphFile(pyspyDataPath: string): PerfData {
 						const linenr = parseInt(linenrStr, 10);
 						if (!M.config.onlyLocalLeaf) {
 							traceData.frames.push({ symbol: symbol || undefined, file, linenr });
-						} else if (workspace_dir && file.startsWith(workspace_dir)) {
-							// Only push last leaf (self() trace) if this is a project file
+						} else if (workspace_dir && file.startsWith(workspace_dir) && !/\/\.?venv\//.test(file)) {
+							// Only push last leaf (self() trace) if this is a project file,
+							// that is related to this project (not in venv for python code)
 							lastLocalLeaf = { symbol: symbol || undefined, file, linenr };
 						} else {
 							// For all other project-external files, push all traces
@@ -386,7 +387,7 @@ export function add_annotation(filePath: string, event: string, linenr: number, 
 			color: 'rgba(177, 177, 177, 0.7)',
 			margin: '0 0 0 15px',
 		},
-		backgroundColor: `rgba(${col[0]}, ${col[1]}, ${col[2]}, ${count / max_count})`,
+		backgroundColor: `rgba(${col[0]}, ${col[1]}, ${col[2]}, ${count / max_count * 0.7})`,
 	};
 	switch (M.config.eventOutputType) {
 		case EventOutputType.percentage:
