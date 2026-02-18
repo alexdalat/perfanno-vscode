@@ -14,12 +14,12 @@ export function getAllActiveBuffers(): vscode.TextEditor[] {
 }
 
 function hexToRgb(hex: string) {
-  var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result ? [
-    parseInt(result[1], 16),
-    parseInt(result[2], 16),
-    parseInt(result[3], 16)
-  ] : null;
+	var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+	return result ? [
+		parseInt(result[1], 16),
+		parseInt(result[2], 16),
+		parseInt(result[3], 16)
+	] : null;
 }
 
 const outputTypeMap: Record<string, perfInfo.EventOutputType> = {
@@ -36,8 +36,8 @@ function strToOutputType(str: string): perfInfo.EventOutputType {
 	return outputType;
 }
 
-const config_keys = 		 ['eventOutputType', 'localRelative', 'highlightColor', 'minimumThreshold', 'file', 'onlyLocalLeaf'];
-const config_mod_funcs = [ strToOutputType, 	null,            hexToRgb,         null,               null,	null];
+const config_keys = ['eventOutputType', 'localRelative', 'highlightColor', 'minimumThreshold', 'file', 'onlyLocalLeaf'];
+const config_mod_funcs = [strToOutputType, null, hexToRgb, null, null, null];
 
 function is_affected(event: vscode.ConfigurationChangeEvent): boolean {
 	for (let key of config_keys) {
@@ -51,7 +51,7 @@ function is_affected(event: vscode.ConfigurationChangeEvent): boolean {
 function syncConfig() {
 	for (let i = 0; i < config_keys.length; i++) {
 		let val = vscode.workspace.getConfiguration('perfanno').get(config_keys[i]);
-		if(typeof config_mod_funcs[i] === 'function') {
+		if (typeof config_mod_funcs[i] === 'function') {
 			val = config_mod_funcs[i]?.(val as string);
 		}
 		perfInfo.setConfig(config_keys[i], val);
@@ -95,7 +95,7 @@ export function activate(context: vscode.ExtensionContext) {
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('perfanno.pickEvent', () => {
-		if(!perfInfo.isLoaded()) {
+		if (!perfInfo.isLoaded()) {
 			vscode.window.showInformationMessage("Can't select: no perf data loaded");
 			return;
 		}
@@ -118,7 +118,7 @@ export function activate(context: vscode.ExtensionContext) {
 				}
 			}
 		});
-		
+
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('perfanno.readFile', async () => {
@@ -159,6 +159,48 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 
 		const totalCount = perfInfo.loadTraces(perfInfo.perfCallgraphFile(fileStr));
+		reannotate();
+		vscode.window.showInformationMessage(`Loaded ${totalCount} traces from ${fileStr}`);
+	}));
+
+	context.subscriptions.push(vscode.commands.registerCommand('perfanno.readPySpyFile', async () => {
+		var fileStr = undefined;
+
+		// if file defined by `file` setting exists, load it. Else, fallback to prompting
+		// check using workspace root, or cwd root
+		try {
+			const workspaceFolder = vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders[0].uri.fsPath : process.cwd();
+			if (!workspaceFolder) {
+				throw new Error('No workspace or active folder found');
+			}
+
+			syncConfig();
+			const relFilePath = perfInfo.getConfig('file');
+			if (!relFilePath) {
+				throw new Error('No file defined in configuration');
+			}
+
+			const absFilePath = path.join(workspaceFolder, relFilePath);
+			if (!fs.existsSync(absFilePath)) {
+				throw new Error(`File ${absFilePath} not found`);
+			}
+
+			fileStr = absFilePath;
+		} catch (e) {
+			fileStr = await vscode.window.showOpenDialog({ canSelectFiles: true, canSelectFolders: false, canSelectMany: false, title: 'Select raw py-spy file' }).then((uris) => {
+				if (uris === undefined) {
+					return;
+				}
+				return uris[0].fsPath;
+			});
+		}
+
+		if (fileStr === undefined) {
+			vscode.window.showErrorMessage('No file selected');
+			return;
+		}
+
+		const totalCount = perfInfo.loadTraces(perfInfo.pyspyCallgraphFile(fileStr));
 		reannotate();
 		vscode.window.showInformationMessage(`Loaded ${totalCount} traces from ${fileStr}`);
 	}));

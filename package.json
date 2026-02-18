@@ -29,7 +29,7 @@
     "commands": [
       {
         "command": "perfanno.highlightLine",
-        "title": "Perfanno: highlightLine"
+        "title": "Perfanno: Highlight Current Line"
       },
       {
         "command": "perfanno.readFile",
@@ -42,6 +42,10 @@
       {
         "command": "perfanno.clearHighlights",
         "title": "Perfanno: Clear Highlights"
+      },
+      {
+        "command": "perfanno.readPySpyFile",
+        "title": "Perfanno: Read Py-Spy File"
       }
     ],
     "configuration": {
@@ -94,14 +98,14 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.89.0",
-    "@types/mocha": "^10.0.6",
-    "@types/node": "18.x",
-    "@typescript-eslint/eslint-plugin": "^7.7.1",
-    "@typescript-eslint/parser": "^7.7.1",
-    "eslint": "^8.57.0",
-    "typescript": "^5.4.5",
+    "@types/vscode": "^1.108.1",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^18.19.130",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.1",
+    "typescript": "^5.9.3",
     "@vscode/test-cli": "^0.0.9",
-    "@vscode/test-electron": "^2.3.9"
+    "@vscode/test-electron": "^2.5.2"
   }
 }

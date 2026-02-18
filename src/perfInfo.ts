@@ -7,13 +7,13 @@ let M = {
 	data: {} as PerfData,
 	events: [] as string[],
 	current_event: "",
-	callgraphs: {} as { 
+	callgraphs: {} as {
 		[key: string]: {
 			nodeInfo: { [key: string]: { [key: number]: { count: number; rec_count: number; out_counts: { [key: string]: number; }; in_counts: { [key: string]: number; }; }; }; };
 			symbols: { [key: string]: { count: number; min_line: number | null; max_line: number | null; }; };
 			totalCount: number;
 			maxCount: number;
-		}; 
+		};
 	},
 
 	config: {} as { [key: string]: any }
@@ -54,6 +54,7 @@ export interface PerfData {
 export function perfCallgraphFile(perfDataPath: string): PerfData {
 	const result: PerfData = {};
 	let currentEvent: string | undefined;
+	let workspace_dir = workspace.workspaceFolders?.[0].uri.fsPath.replaceAll("\\", "/");
 
 	const lines = fs.readFileSync(perfDataPath, 'utf-8').split('\n');
 	for (const line of lines) {
@@ -75,7 +76,6 @@ export function perfCallgraphFile(perfDataPath: string): PerfData {
 
 					const funcs = traceLine.split(';');
 					let lastLocalLeaf;
-					let workspace_dir = workspace.workspaceFolders?.[0].uri.fsPath.replaceAll("\\", "/");
 					for (const func of funcs) {
 						const funcMatch = func.match(/^(.*?)\s+((?:[a-z]:)?\/.+):(\d+)\s*(?:\(inlined\))?$/);
 
@@ -85,10 +85,10 @@ export function perfCallgraphFile(perfDataPath: string): PerfData {
 							if (!M.config.onlyLocalLeaf) {
 								traceData.frames.push({ symbol: symbol || undefined, file, linenr });
 							} else if (workspace_dir && file.startsWith(workspace_dir)) {
-							// Only push last leaf (self() trace) if this is a project file
+								// Only push last leaf (self() trace) if this is a project file
 								lastLocalLeaf = { symbol: symbol || undefined, file, linenr };
 							} else {
-							// For all other project-external files, push all traces
+								// For all other project-external files, push all traces
 								traceData.frames.push({ symbol: symbol || undefined, file, linenr });
 							}
 						} else {
@@ -103,6 +103,72 @@ export function perfCallgraphFile(perfDataPath: string): PerfData {
 						result[currentEvent].push(traceData);
 					}
 				}
+			}
+		}
+	}
+
+	M.data = result;
+	M.hasData = true;
+	return M.data;
+}
+
+
+/**
+ * 
+ * @param pyspyDataPath Path to pyspy raw callgraph file.
+ * @returns Table with the following fields:
+ *		- event: List of tables with the following fields:
+ *			- count: Number of times this stack trace occurred.
+ *			- frames: List of frames in the stack trace with the following fields:
+ *				- symbol: Symbol name.
+ *				- file: File name.
+ *				- linenr: Line number.
+ */
+export function pyspyCallgraphFile(pyspyDataPath: string): PerfData {
+	let currentEvent: string | undefined = "cpu_cycles";
+	const result: PerfData = { [currentEvent]: [] };
+	let workspace_dir = workspace.workspaceFolders?.[0].uri.fsPath.replaceAll("\\", "/");
+
+	const lines = fs.readFileSync(pyspyDataPath, 'utf-8').split('\n');
+	for (const line of lines) {
+
+		const countTraceMatch = line.match(/^(.+) (\d+)$/);
+
+		if (countTraceMatch) {
+			const [, traceLine, countStr] = countTraceMatch;
+			const count = parseInt(countStr, 10);
+
+			if (count > 0) {
+				const traceData: TraceData = { count: count, frames: [] };
+
+				const funcs = traceLine.split(';');
+				let lastLocalLeaf;
+				for (const func of funcs) {
+					const funcMatch = func.match(/^(.*?)\s+\(((?:\/|\\).+):(\d+)\)$/);
+
+					if (funcMatch) {
+						let [, symbol, file, linenrStr] = funcMatch;
+						file = file.replaceAll("\\", "/");
+
+						const linenr = parseInt(linenrStr, 10);
+						if (!M.config.onlyLocalLeaf) {
+							traceData.frames.push({ symbol: symbol || undefined, file, linenr });
+						} else if (workspace_dir && file.startsWith(workspace_dir)) {
+							// Only push last leaf (self() trace) if this is a project file
+							lastLocalLeaf = { symbol: symbol || undefined, file, linenr };
+						} else {
+							// For all other project-external files, push all traces
+							traceData.frames.push({ symbol: symbol || undefined, file, linenr });
+						}
+					} else {
+						traceData.frames.push({ symbol: func });
+					}
+				}
+				if (M.config.onlyLocalLeaf && lastLocalLeaf != undefined) {
+					traceData.frames.push(lastLocalLeaf);
+				}
+
+				result[currentEvent].push(traceData);
 			}
 		}
 	}
@@ -127,10 +193,16 @@ export function frame_unpack(frame: Frame | string): [string | undefined, string
 		}
 
 		if (!realNames[frame.file]) {
-			try {
-				realNames[frame.file] = fs.realpathSync(frame.file);
-			} catch (e) {
-				// path resolution failed, just use the original path
+			// Only try to resolve this if it shows even the first semblence of a path
+			if (frame.file.startsWith("/")) {
+				try {
+					realNames[frame.file] = fs.realpathSync(frame.file);
+				} catch (e) {
+					// path resolution failed, just use the original path
+					realNames[frame.file] = frame.file;
+				}
+			} else {
+				// otherwise just fall back as above
 				realNames[frame.file] = frame.file;
 			}
 		}
@@ -279,29 +351,29 @@ export function loadTraces(traces: PerfData): number {
 //  @param total_count Total number of traces.
 //  @param max_count Maximum count of a single line.
 export function add_annotation(filePath: string, event: string, linenr: number, info: { count: number; rec_count: number; out_counts: { [key: string]: number; }; in_counts: { [key: string]: number; }; }, total_count: number, max_count: number): void {
-	if(M.config.localRelative) {
+	if (M.config.localRelative) {
 		let t_count = 0;
 		for (const [filename, line_and_counts] of Object.entries(info.in_counts)) {
-			for(const [lr, count] of Object.entries(line_and_counts)) {
-				if(!M.callgraphs[event].nodeInfo[filename][parseInt(lr)]) {	
+			for (const [lr, count] of Object.entries(line_and_counts)) {
+				if (!M.callgraphs[event].nodeInfo[filename][parseInt(lr)]) {
 					continue;
 				}
 				t_count += M.callgraphs[event].nodeInfo[filename][parseInt(lr)].rec_count;
 			}
 		}
-		if(t_count > 0) {
+		if (t_count > 0) {
 			total_count = t_count;
 			max_count = total_count;
 		}
 	}
 
-	if(info.count / total_count < M.config.minimumThreshold) {
+	if (info.count / total_count < M.config.minimumThreshold) {
 		return;
 	}
 
 	// https://github.com/alexdalat/perfanno-vscode/issues/1
 	// fix when line2addr can't determine line number
-	if(linenr <= 0) {
+	if (linenr <= 0) {
 		return;
 	}
 
@@ -316,7 +388,7 @@ export function add_annotation(filePath: string, event: string, linenr: number, 
 		},
 		backgroundColor: `rgba(${col[0]}, ${col[1]}, ${col[2]}, ${count / max_count})`,
 	};
-	switch(M.config.eventOutputType) {
+	switch (M.config.eventOutputType) {
 		case EventOutputType.percentage:
 			opts.after.contentText = Math.round(count / total_count * 10000) / 100 + '%';
 			break;
@@ -360,7 +432,7 @@ export function annotateBuffer(filePath: any, event: string): void {
 // Precondition: M.callgraphs[event] must exist.
 export function addAnnotations(): void {
 	let e = (M.current_event !== "" ? M.current_event : M.events[0]);
-	if(!M.callgraphs[e]) {
+	if (!M.callgraphs[e]) {
 		throw new Error(`addAnnotations: event ${e} does not exist`);
 	}
 	for (const file in M.callgraphs[e].nodeInfo) {

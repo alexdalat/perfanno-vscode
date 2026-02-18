@@ -1,0 +1,2 @@
+- add support for function to line resolving from py-spy outputs
+- add support from just reading py-spy outputs directly
