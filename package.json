@@ -4,7 +4,7 @@
   "description": "Annotates source code with perf information.",
   "version": "1.4.0",
   "engines": {
-    "vscode": "^1.89.0"
+    "vscode": "^1.108.0"
   },
   "publisher": "alexd",
   "icon": "icon-128.png",
