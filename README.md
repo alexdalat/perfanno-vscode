@@ -3,15 +3,19 @@
 ![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/alexd.perfanno?style=for-the-badge&link=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dalexd.perfanno)
 ![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/alexd.perfanno?style=for-the-badge&label=VSM%20Version&link=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dalexd.perfanno)
 
-Perfanno-vscode is a simple extension that allows users to annotate buffers using perf output information. The result is a beatiful heatmap showing developers where performance bottlenecks are slowing down their program.
+Perfanno-vscode is a simple extension that allows users to annotate buffers using perf or [py-spy](https://github.com/benfred/py-spy) output information. The result is a beautiful heatmap showing developers where performance bottlenecks are slowing down their program.
 
 ![Example](https://github.com/alexdalat/perfanno-vscode/blob/main/example.png?raw=true)
+
+![Py-Spy Example](https://github.com/alexdalat/perfanno-vscode/blob/main/pyspy-example.png?raw=true)
+from https://github.com/MalTeeez/python-perfanno-example
 
 ## Notes
 
 * **Most of the processing algorithm is taken directly from https://github.com/t-troebst/perfanno.nvim. I am not the original author of the code. I ported it to vscode/typescript and added a few features.**
 * This extension is still in beta. It is not expansive in any way, but it does the job simply and effectively.
 * Only C++ programs on MacOS (with perf on Ubuntu) have been tested. But anything that perf can profile should work.
+* Python profiling via [py-spy](https://github.com/benfred/py-spy) raw output is also supported.
 * Please report any issues you may find.
 
 ---
@@ -78,19 +82,42 @@ This command will always be the same. Therefore, if desired, one can chain both 
 
 ---
 
+## Py-Spy Workflow
+
+Perfanno also supports [py-spy](https://github.com/benfred/py-spy) raw output for profiling Python programs. See [https://github.com/MalTeeez/python-perfanno-example/blob/main/tools/perf.sh](https://github.com/MalTeeez/python-perfanno-example/blob/main/tools/perf.sh) for an example script.
+
+1. Profile your Python program with py-spy using the `raw` format and `--full-filenames`:
+
+```bash
+py-spy record --full-filenames --idle --native --rate 198 --format raw -o pyspy.txt -- python my_script.py
+```
+
+*Customization*:
+ * `--rate` sets the sampling rate in Hz.
+ * `--native` includes native (C/C++) call frames in the output.
+ * `--idle` includes idle threads in the profile.
+ * `--pid` can be used instead of `--` to attach to an already-running process.
+
+2. Open a source file in vscode and run the `perfanno.readPySpyFile` (`Perfanno: Read Py-Spy File`) command using the command palette. Select the raw output file generated in the previous step.
+
+---
+
 ## Extension Commands
 
-* `perfanno.readFile`: Prompts for a file and annotates buffers with with the perf information.
+* `perfanno.readFile`: Prompts for a perf report file and annotates buffers with the perf information.
+* `perfanno.readPySpyFile`: Prompts for a py-spy raw output file and annotates buffers with the profiling information.
 * `perfanno.pickEvent`: Select a perf event to annotate.
 * `perfanno.clearHighlights`: Clears all annotations and highlights.
-* `perfanno.highlight`: Highlights the current line. Used to test certain highlighter capabilities.
+* `perfanno.clearStoredFilePaths`: Clears stored default paths to report files.
+* `perfanno.highlightLine`: Highlights the current line. Used to test certain highlighter capabilities.
 
 ## Extension Settings
 
-* `perfanno.file`: Perf datafile to search for by default. Will prompt with finder if file does not exist. Can be a file path.
+* `perfanno.perfFile`: Perf data file to search for in project root. Will prompt with finder if file does not exist. Can be a file path.
+* `perfanno.pyspyFile`: Py-Spy raw file to search for in project root. Will prompt with finder if file does not exist. Can be a file path.
 * `perfanno.eventOutputType`: Specifies the output format for virtual text when annotating.
 * `perfanno.localRelative`: Whether to show count relative to enclosing symbol (high sample count recommended).
-* `perfanno.highlightColor`: The color of the highlight. 
+* `perfanno.highlightColor`: The color of the highlight.
 * `perfanno.minimumThreshold`: The minimum percentage threshold for annotating.
 * `perfanno.onlyLocalLeaf`: Collapse each trace to its deepest in-workspace frame.
 
