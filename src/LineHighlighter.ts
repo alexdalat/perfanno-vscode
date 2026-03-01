@@ -1,4 +1,3 @@
-import { get } from 'http';
 import * as vscode from 'vscode';
 
 export namespace LineHighlighter {
