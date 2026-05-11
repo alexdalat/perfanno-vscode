@@ -42,6 +42,10 @@ export interface PerfData {
 	[key: string]: TraceData[];
 }
 
+
+const PERF_FUNCTION_PATTERN = new RegExp(/^(.*?)\s+((?:[a-zA-Z]:)?(?:\/|\\).+):(\d+)\s*(?:\(inlined\))?$/, "m");
+const PYSPY_FUNCTION_PATTERN = new RegExp(/^(.*?)\s+\(((?:[a-zA-Z]:)?(?:\/|\\).+):(\d+)\)$/, "m");
+
 // Reads a perf callgraph file and returns the data.
 //	@param perfDataPath Path to perf callgraph file.
 //	@return Table with the following fields:
@@ -77,7 +81,7 @@ export function perfCallgraphFile(perfDataPath: string): PerfData {
 					const funcs = traceLine.split(';');
 					let lastLocalLeaf;
 					for (const func of funcs) {
-						const funcMatch = func.match(/^(.*?)\s+((?:[a-z]:)?\/.+):(\d+)\s*(?:\(inlined\))?$/);
+						const funcMatch = func.match(PERF_FUNCTION_PATTERN);
 
 						if (funcMatch) {
 							const [, symbol, file, linenrStr] = funcMatch;
@@ -144,7 +148,7 @@ export function pyspyCallgraphFile(pyspyDataPath: string): PerfData {
 				const funcs = traceLine.split(';');
 				let lastLocalLeaf;
 				for (const func of funcs) {
-					const funcMatch = func.match(/^(.*?)\s+\(((?:\/|\\).+):(\d+)\)$/);
+					const funcMatch = func.match(PYSPY_FUNCTION_PATTERN);
 
 					if (funcMatch) {
 						let [, symbol, file, linenrStr] = funcMatch;
@@ -212,7 +216,7 @@ export function frame_unpack(frame: Frame | string): [string | undefined, string
 	}
 
 	// frame is a string
-	const match = frame.match(/^(.*?)\s+((?:[a-z]:)?\/.+):(\d+)\s*(?:\(inlined\))?$/);
+	const match = frame.match(PERF_FUNCTION_PATTERN);
 	if (match) {
 		const [, symbol, file, linenrStr] = match;
 		const linenr = parseInt(linenrStr, 10);
