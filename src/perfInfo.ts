@@ -190,11 +190,11 @@ export function pyspyCallgraphFile(pyspyDataPath: string): PerfData {
 //        format.
 export function frame_unpack(frame: Frame | string): [string | undefined, string, number | string] {
 	if (typeof frame !== 'string') {
-		if (!frame.file || !frame.linenr) {
+		if (!frame.file || frame.linenr == undefined) {
 			if (!frame.symbol) {
 				throw new Error("frame_unpack: frame must have symbol");
 			}
-			return [undefined, "symbol", frame.symbol];
+			return [frame.symbol, frame.file || "symbol", frame.linenr || 0];
 		}
 
 		if (!realNames[frame.file]) {
