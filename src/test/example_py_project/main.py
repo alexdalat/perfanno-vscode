@@ -27,7 +27,7 @@ def main():
 
     result = network_operation()
     print(f"\tStatus code: {result}")
-    # any time under 10s is good
+    # any time under 5s is good
 
 
 @timeit_ms
@@ -48,7 +48,7 @@ def sleep_operation(x):
 def network_operation():
     headers = {"Cache-Control": "no-cache", "Pragma": "no-cache"}
     try:
-        response = requests.get("https://httpbin.org/get", headers=headers, timeout=10)
+        response = requests.get("https://httpbin.org/get", headers=headers, timeout=5)
         return response.status_code
     except Exception as e:
         print(f"Network operation error: {e}")
