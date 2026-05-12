@@ -1,4 +1,7 @@
 # original example from https://github.com/MalTeeez/python-perfanno-example/blob/main/src/main.py
+# profile output use:  
+#   uv run py-spy record --full-filenames --idle --native --rate 198 --format raw -o pyspy.txt -- python main.py
+
 import math
 import time
 import functools
