@@ -1,5 +1,7 @@
 
 // compiled with:  g++ -std=c++17 -Wall main.cpp
+// profiled with:  perf record --call-graph dwarf -- ./a.out
+// analyzed with:  perf report -g folded,0,caller,srcline,branch,count --no-children --full-source-path --stdio -i perf.data > perf.out
 
 // output
 #include <iostream>
@@ -15,6 +17,7 @@
 
 // other
 #include <vector>
+#include <cstring> // strlen
 
 
 void simple_network_request() {
@@ -41,7 +44,7 @@ int main() {
   const unsigned int N = 10000000;
 
   std::vector<int> vec(N);
-  for (int i = 0; i < N; ++i) {
+  for (unsigned int i = 0; i < N; ++i) {
     vec[i] = i;
   }
   vec.clear();
