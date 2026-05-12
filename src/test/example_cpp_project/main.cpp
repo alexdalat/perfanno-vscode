@@ -1,5 +1,5 @@
 
-// compiled with:  g++ -std=c++17 -Wall main.cpp
+// compiled with:  g++ -std=c++17 -Wall -fno-omit-frame-pointer -g -O2 main.cpp
 // profiled with:  perf record --call-graph dwarf -- ./a.out
 // analyzed with:  perf report -g folded,0,caller,srcline,branch,count --no-children --full-source-path --stdio -i perf.data > perf.out
 
