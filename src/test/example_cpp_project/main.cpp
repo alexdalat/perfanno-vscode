@@ -18,8 +18,10 @@
 // other
 #include <vector>
 #include <cstring> // strlen
+#include <functional>
 
 
+// Helper function to perform a simple network request to example.com
 void simple_network_request() {
   int sock = socket(AF_INET, SOCK_STREAM, 0);
   struct hostent* host = gethostbyname("example.com");
@@ -37,40 +39,30 @@ void simple_network_request() {
   close(sock);
 }
 
-int main() {
-  
-  // for loop
-  auto start = std::chrono::high_resolution_clock::now();
-  const unsigned int N = 10000000;
 
+// Section: For loop
+void for_loop_section() {
+  const unsigned int N = 10000000;
   std::vector<int> vec(N);
   for (unsigned int i = 0; i < N; ++i) {
     vec[i] = i;
   }
   vec.clear();
-
-  auto end = std::chrono::high_resolution_clock::now();
-  auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
-                .count();
-  std::cout << "Time taken for for loop: " << ms << " ms" << std::endl;
   // about 150ms +- 20ms
+}
 
 
-  // block the main thread
-  start = std::chrono::high_resolution_clock::now();
-
+// Section: Sleep
+void sleep_section() {
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
-
-  end = std::chrono::high_resolution_clock::now();
-  ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
-           .count();
-  std::cout << "Time taken for sleep: " << ms << " ms" << std::endl;
   // about 200ms +- 10ms
+}
 
 
-  // threading
-  start = std::chrono::high_resolution_clock::now();
-
+// Section: Threading
+void threading_section() {
+  auto start = std::chrono::high_resolution_clock::now();
+  
   std::thread t([start]() {
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     auto end = std::chrono::high_resolution_clock::now();
@@ -79,30 +71,42 @@ int main() {
     std::cout << "(thread) Time taken for sleep: " << ms << " ms" << std::endl;
   });
 
-  end = std::chrono::high_resolution_clock::now();
-  ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
+  auto end = std::chrono::high_resolution_clock::now();
+  auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
            .count();
   std::cout << "(main) Time taken for threaded sleep: " << ms << " ms" << std::endl;
   // 0ms
-
+  
   t.join();
   // about 200ms +- 10ms
+}
 
 
-  // network request
-  // make initial request to warm up DNS cache
+// Section: Network request
+void network_section() {
   simple_network_request();
+}
 
-  start = std::chrono::high_resolution_clock::now();
 
+// Timer wrapper for functions
+void time_function(const std::string& description, std::function<void()> func) {
+  auto start = std::chrono::high_resolution_clock::now();
+  func();
+  auto end = std::chrono::high_resolution_clock::now();
+  auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
+                .count();
+  std::cout << "Time taken for " << description << ": " << ms << " ms" << std::endl;
+}
+
+
+int main() {
+  time_function("for loop", for_loop_section);
+  time_function("sleep", sleep_section);
+  time_function("threaded sleep", threading_section);
+
+  // network request - warm up DNS cache first
   simple_network_request();
-
-  end = std::chrono::high_resolution_clock::now();
-  ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
-           .count();
-  std::cout << "Time taken for network request: " << ms << " ms" << std::endl;
-  // about 40ms
-
+  time_function("network request", network_section);
 
   return 0;
 }
