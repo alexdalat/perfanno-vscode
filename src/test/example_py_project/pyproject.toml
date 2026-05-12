@@ -1,0 +1,10 @@
+[project]
+name = "example-py-project"
+version = "0.1.0"
+description = "Simple tests to be profiled with perfanno"
+readme = "README.md"
+requires-python = ">=3.14.5"
+dependencies = [
+    "py-spy>=0.4.2",
+    "requests>=2.34.0",
+]
