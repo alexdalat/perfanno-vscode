@@ -42,7 +42,7 @@ void simple_network_request() {
 
 // Section: For loop
 void for_loop_section() {
-  const unsigned int N = 10000000;
+  const unsigned int N = 1000000;
   std::vector<int> vec(N);
   for (unsigned int i = 0; i < N; ++i) {
     vec[i] = i;
