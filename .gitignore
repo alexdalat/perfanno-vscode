@@ -4,6 +4,8 @@ node_modules
 .vscode-test/
 *.vsix
 
+.venv/
+
 .DS_Store
 
 todo.md
