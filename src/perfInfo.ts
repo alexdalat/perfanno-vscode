@@ -95,7 +95,7 @@ export function perfCallgraphFile(perfDataPath: string): PerfData {
 							traceData.frames.push({ symbol: func });
 						}
 					}
-					if (M.config.onlyLocalLeaf && lastLocalLeaf != undefined) {
+					if (M.config.onlyLocalLeaf && lastLocalLeaf !== undefined) {
 						traceData.frames.push(lastLocalLeaf);
 					}
 
@@ -165,7 +165,7 @@ export function pyspyCallgraphFile(pyspyDataPath: string): PerfData {
 						traceData.frames.push({ symbol: func });
 					}
 				}
-				if (M.config.onlyLocalLeaf && lastLocalLeaf != undefined) {
+				if (M.config.onlyLocalLeaf && lastLocalLeaf !== undefined) {
 					traceData.frames.push(lastLocalLeaf);
 				}
 
