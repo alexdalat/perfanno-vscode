@@ -56,7 +56,7 @@ export function perfCallgraphFile(perfDataPath: string): PerfData {
 	let currentEvent: string | undefined;
 	let workspace_dir = workspace.workspaceFolders?.[0].uri.fsPath.replaceAll("\\", "/");
 
-	const lines = fs.readFileSync(perfDataPath, 'utf-8').split('\n');
+	const lines = fs.readFileSync(perfDataPath, 'utf-8').split(/\r?\n/);
 	for (const line of lines) {
 		const numEventMatch = line.match(/# Samples: (\d+[KMB]?)\s+of event '(.*)'/);
 
@@ -129,7 +129,7 @@ export function pyspyCallgraphFile(pyspyDataPath: string): PerfData {
 	const result: PerfData = { [currentEvent]: [] };
 	let workspace_dir = workspace.workspaceFolders?.[0].uri.fsPath.replaceAll("\\", "/");
 
-	const lines = fs.readFileSync(pyspyDataPath, 'utf-8').split('\n');
+	const lines = fs.readFileSync(pyspyDataPath, 'utf-8').split(/\r?\n/);
 	for (const line of lines) {
 
 		const countTraceMatch = line.match(/^(.+) (\d+)$/);
