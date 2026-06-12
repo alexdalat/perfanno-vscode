@@ -1,9 +1,11 @@
 # perfanno-vscode
 
-![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/alexd.perfanno?style=for-the-badge&link=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dalexd.perfanno)
-![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/alexd.perfanno?style=for-the-badge&label=VSM%20Version&link=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dalexd.perfanno)
+[![Version](https://img.shields.io/github/v/tag/alexdalat/perfanno-vscode?style=for-the-badge&label=version)](https://marketplace.visualstudio.com/items?itemName=alexd.perfanno)
+[![Installs](https://vsmarketplacebadges.dev/installs/alexd.perfanno.svg?style=for-the-badge)](https://marketplace.visualstudio.com/items?itemName=alexd.perfanno)
+[![Tests](https://img.shields.io/github/actions/workflow/status/alexdalat/perfanno-vscode/test.yml?branch=main&style=for-the-badge&label=tests)](https://github.com/alexdalat/perfanno-vscode/actions/workflows/test.yml)
+[![License](https://img.shields.io/github/license/alexdalat/perfanno-vscode?style=for-the-badge)](https://github.com/alexdalat/perfanno-vscode/blob/main/LICENSE)
 
-Perfanno-vscode is a simple extension that allows users to annotate buffers using perf or [py-spy](https://github.com/benfred/py-spy) output information. The result is a beautiful heatmap showing developers where performance bottlenecks are slowing down their program.
+Perfanno-vscode allows users to annotate buffers using perf or [py-spy](https://github.com/benfred/py-spy) output information. The result is a beautiful heatmap showing developers where performance bottlenecks are slowing down their program.
 
 ![Example](https://github.com/alexdalat/perfanno-vscode/blob/main/example.png?raw=true)
 
