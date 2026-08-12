@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as perfInfo from './perfInfo';
 import { LineHighlighter } from './LineHighlighter';
+import { FlameGraphPanel } from './FlameGraphPanel';
 import * as fs from 'fs';
 import * as path from 'path';
 import { spawn } from 'child_process';
@@ -68,6 +69,7 @@ function reannotate() {
 		LineHighlighter.clear();  // clears annotations
 		perfInfo.addAnnotations();  // stores annotations in LineHighlighter
 		LineHighlighter.applyMultiHighlights(getAllActiveBuffers());  // draw annotations on active tabs
+		FlameGraphPanel.refreshIfVisible();
 	} catch (e) {
 		vscode.window.showErrorMessage(String(e));
 	}
@@ -371,6 +373,16 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	} });
 
+	FlameGraphPanel.setEventSelectedHandler(event => {
+		try {
+			perfInfo.selectEvent(event);
+			reannotate();
+		} catch (e) {
+			vscode.window.showErrorMessage(String(e));
+		}
+	});
+	context.subscriptions.push({ dispose: () => FlameGraphPanel.currentPanel?.dispose() });
+
 	if (vscode.workspace.getConfiguration('perfanno').get<boolean>('autoLoad')) {
 		void autoLoadPerfData(false);
 	}
@@ -412,6 +424,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.commands.registerCommand('perfanno.goToHottestLineInWorkspace', async () => {
 		await goToHottestLine(perfInfo.getHottestLineInWorkspace(), 'in the workspace');
+	}));
+
+	context.subscriptions.push(vscode.commands.registerCommand('perfanno.showFlameGraph', () => {
+		FlameGraphPanel.createOrShow();
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('perfanno.pickEvent', () => {
@@ -574,4 +590,5 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
 	LineHighlighter.clear();
+	FlameGraphPanel.currentPanel?.dispose();
 }

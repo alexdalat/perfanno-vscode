@@ -222,6 +222,100 @@ suite('Extension Test Suite', () => {
 		});
 	});
 
+	suite('buildFlameGraph', () => {
+		test('Merges identical call paths and sums counts', () => {
+			const traces: perfInfo.TraceData[] = [
+				{ count: 10, frames: [
+					{ symbol: 'main', file: '/fake/main.cpp', linenr: 5 },
+					{ symbol: 'work', file: '/fake/main.cpp', linenr: 20 },
+				]},
+				{ count: 5, frames: [
+					{ symbol: 'main', file: '/fake/main.cpp', linenr: 5 },
+				]},
+			];
+
+			const root = perfInfo.buildFlameGraph(traces);
+
+			assert.strictEqual(root.count, 15, "Root count should be the sum of all trace counts");
+			assert.strictEqual(root.children.length, 1, "Both traces share the same root frame");
+			const main = root.children[0];
+			assert.strictEqual(main.label, 'main');
+			assert.strictEqual(main.file, '/fake/main.cpp');
+			assert.strictEqual(main.linenr, 5);
+			assert.strictEqual(main.count, 15, "main should accumulate counts from both traces");
+			assert.strictEqual(main.children.length, 1);
+			assert.strictEqual(main.children[0].label, 'work');
+			assert.strictEqual(main.children[0].count, 10, "work should only see the trace that reached it");
+		});
+
+		test('Diverging call paths become separate children', () => {
+			const traces: perfInfo.TraceData[] = [
+				{ count: 3, frames: [
+					{ symbol: 'main', file: '/fake/main.cpp', linenr: 5 },
+					{ symbol: 'a', file: '/fake/a.cpp', linenr: 1 },
+				]},
+				{ count: 4, frames: [
+					{ symbol: 'main', file: '/fake/main.cpp', linenr: 5 },
+					{ symbol: 'b', file: '/fake/b.cpp', linenr: 2 },
+				]},
+			];
+
+			const root = perfInfo.buildFlameGraph(traces);
+			const main = root.children[0];
+
+			assert.strictEqual(main.count, 7);
+			assert.strictEqual(main.children.length, 2, "Diverging callees should not be merged");
+			assert.strictEqual(main.children[0].label, 'b', "Children should be sorted by count, descending");
+			assert.strictEqual(main.children[0].count, 4);
+			assert.strictEqual(main.children[1].label, 'a');
+			assert.strictEqual(main.children[1].count, 3);
+		});
+
+		test('Recursive frames chain into nested children, not merged into one node', () => {
+			const traces: perfInfo.TraceData[] = [
+				{ count: 3, frames: [
+					{ symbol: 'recurse', file: '/fake/r.cpp', linenr: 7 },
+					{ symbol: 'recurse', file: '/fake/r.cpp', linenr: 7 },
+				]},
+			];
+
+			const root = perfInfo.buildFlameGraph(traces);
+
+			assert.strictEqual(root.children.length, 1);
+			assert.strictEqual(root.children[0].count, 3);
+			assert.strictEqual(root.children[0].children.length, 1, "Second call should nest under the first, not merge with it");
+			assert.strictEqual(root.children[0].children[0].count, 3);
+		});
+
+		test('Frames without a resolved source location have no file/linenr and use raw label', () => {
+			const traces: perfInfo.TraceData[] = [
+				{ count: 2, frames: [
+					{ symbol: '0xdeadbeef' },
+				]},
+			];
+
+			const root = perfInfo.buildFlameGraph(traces);
+
+			assert.strictEqual(root.children[0].label, '0xdeadbeef');
+			assert.strictEqual(root.children[0].file, undefined);
+			assert.strictEqual(root.children[0].linenr, undefined);
+		});
+
+		test('Empty trace list yields an empty root', () => {
+			const root = perfInfo.buildFlameGraph([]);
+			assert.strictEqual(root.count, 0);
+			assert.deepStrictEqual(root.children, []);
+		});
+
+		test('getFlameGraph reflects the currently loaded and selected event', () => {
+			perfInfo.loadTraces(perfInfo.perfCallgraphFile(perfDataPath));
+			const currentEvent = perfInfo.getCurrentEvent();
+			const flame = perfInfo.getFlameGraph();
+			assert.ok(flame, "Flame graph should exist for the default event");
+			assert.strictEqual(flame!.count, perfInfo.getFlameGraph(currentEvent)!.count, "Default event lookup should match explicit lookup by its own name");
+		});
+	});
+
 	suite('Events', () => {
 		test('getEvents reflects loaded data', () => {
 			perfInfo.loadTraces(perfInfo.perfCallgraphFile(perfDataPath));

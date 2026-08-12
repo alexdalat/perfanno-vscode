@@ -54,6 +54,10 @@
         "title": "Perfanno: Go to Hottest Line (Workspace)"
       },
       {
+        "command": "perfanno.showFlameGraph",
+        "title": "Perfanno: Show Flame Graph"
+      },
+      {
         "command": "perfanno.clearHighlights",
         "title": "Perfanno: Clear Highlights"
       },

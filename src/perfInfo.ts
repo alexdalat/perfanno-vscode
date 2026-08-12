@@ -14,6 +14,7 @@ let M = {
 			symbols: { [key: string]: { count: number; min_line: number | null; max_line: number | null; }; };
 			totalCount: number;
 			maxCount: number;
+			flameRoot: FlameNode;
 		};
 	},
 
@@ -96,6 +97,17 @@ export interface Frame {
 	symbol?: string;
 	file?: string;
 	linenr?: number;
+}
+
+// A node in the aggregated call-stack tree used to render the flame graph.
+// Children are sorted by count, descending. `file`/`linenr` are present iff
+// the frame's source location could be resolved (see frame_unpack).
+export interface FlameNode {
+	label: string;
+	file?: string;
+	linenr?: number;
+	count: number;
+	children: FlameNode[];
 }
 
 export interface TraceData {
@@ -369,6 +381,64 @@ export function processTraces(traces: TraceData[]): any {
 	return [nodeInfo, symbols, total_count, max_count];
 }
 
+interface FlameBuildNode {
+	label: string;
+	file?: string;
+	linenr?: number;
+	count: number;
+	children: Map<string, FlameBuildNode>;
+}
+
+// Resolves a frame into the key/label used to merge it into the flame tree,
+// alongside the source location to navigate to on click (if any).
+function frameToFlameKey(frame: Frame | string): { key: string; label: string; file?: string; linenr?: number } {
+	const [symbol, file, linenrOrText] = frame_unpack(frame);
+
+	if (file === 'symbol') {
+		const label = String(linenrOrText);
+		return { key: `s:${label}`, label };
+	}
+
+	const linenr = linenrOrText as number;
+	const label = symbol || `${path.basename(file)}:${linenr}`;
+	return { key: `${file}:${linenr}`, label, file, linenr };
+}
+
+function finalizeFlameNode(node: FlameBuildNode): FlameNode {
+	const children = [...node.children.values()]
+		.map(finalizeFlameNode)
+		.sort((a, b) => b.count - a.count);
+	return { label: node.label, file: node.file, linenr: node.linenr, count: node.count, children };
+}
+
+// Aggregates a list of stack traces (root-first, leaf-last frames) into a
+// flame graph tree: each path from the root is a call stack, and identical
+// prefixes across traces are merged, with counts summed at each level.
+//	@param traces Stack traces to aggregate.
+//	@return Synthetic root node whose count equals the sum of all trace counts.
+export function buildFlameGraph(traces: TraceData[]): FlameNode {
+	const root: FlameBuildNode = { label: 'root', count: 0, children: new Map() };
+
+	for (const trace of traces) {
+		root.count += trace.count;
+		let node = root;
+
+		for (const frame of trace.frames) {
+			const { key, label, file, linenr } = frameToFlameKey(frame);
+
+			let child = node.children.get(key);
+			if (!child) {
+				child = { label, file, linenr, count: 0, children: new Map() };
+				node.children.set(key, child);
+			}
+			child.count += trace.count;
+			node = child;
+		}
+	}
+
+	return finalizeFlameNode(root);
+}
+
 // Loads given list of stack traces into call graph.
 // 	@param traces Stack traces to be loaded. For format see :help perfanno-extensions.
 //	@return Total number of traces loaded.
@@ -385,7 +455,8 @@ export function loadTraces(traces: PerfData): number {
 		M.events.push(event);
 
 		const [nodeInfo, symbols, totalCount, maxCount] = processTraces(traces[event]);
-		M.callgraphs[event] = { nodeInfo, symbols, totalCount, maxCount };
+		const flameRoot = buildFlameGraph(traces[event]);
+		M.callgraphs[event] = { nodeInfo, symbols, totalCount, maxCount, flameRoot };
 
 		total += totalCount;
 
@@ -560,12 +631,23 @@ export function getHottestLineInWorkspace(event?: string): HottestLine | undefin
 	return best;
 }
 
+// Returns the aggregated flame graph tree for the given event, or the
+// currently selected event if none is given.
+export function getFlameGraph(event?: string): FlameNode | undefined {
+	const e = event ?? (M.current_event !== "" ? M.current_event : M.events[0]);
+	return M.callgraphs[e]?.flameRoot;
+}
+
 export function isLoaded(): boolean {
 	return M.hasData;
 }
 
 export function getEvents(): string[] {
 	return M.events;
+}
+
+export function getCurrentEvent(): string {
+	return M.current_event;
 }
 
 export function selectEvent(event: string): void {
