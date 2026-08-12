@@ -23,7 +23,9 @@
     "Visualization",
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -107,7 +109,7 @@
         },
         "perfanno.autoLoad": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Automatically find, convert, and load perf.data when Perfanno activates. The conversion runs perf report and writes perf.out beside perf.data."
         },
         "perfanno.autoReload": {

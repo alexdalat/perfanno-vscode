@@ -82,7 +82,7 @@ This command will always be the same. Therefore, if desired, one can chain both 
 
 4. Open a source file in vscode and run the `perfanno.readFile` (`Perfanno: Read File`) command using the command palette. Select the `perf.out` file generated in the previous step. Success!
 
-Alternatively, run `Perfanno: Auto Load perf.data`. It searches the workspace, generates `perf.out` next to the first `perf.data` it finds, and loads the annotations with a cancellable progress notification. Set `perfanno.autoLoad` to `true` to do this whenever Perfanno activates.
+Alternatively, run `Perfanno: Auto Load perf.data`. It searches the workspace, generates `perf.out` next to the first `perf.data` it finds, and loads the annotations with a cancellable progress notification. Perfanno does this automatically whenever it activates; set `perfanno.autoLoad` to `false` to disable it.
 
 Perfanno also watches `perf.data` for changes by default. After a one-second debounce (to allow `perf record` to finish writing), it regenerates and reloads `perf.out`. Set `perfanno.autoReload` to `false` to disable this behavior.
 
@@ -128,7 +128,7 @@ py-spy record --full-filenames --idle --native --rate 198 --format raw -o pyspy.
 * `perfanno.minimumThreshold`: The minimum percentage threshold for annotating.
 * `perfanno.onlyLocalLeaf`: Collapse each trace to its deepest in-workspace frame.
 * `perfanno.pathMappings`: Maps recorded source-path prefixes to local source-path prefixes. Use this when a profile was created in a different checkout or machine.
-* `perfanno.autoLoad`: Automatically runs the perf.data autoload workflow when the extension activates.
+* `perfanno.autoLoad`: Automatically runs the perf.data autoload workflow when the extension activates (enabled by default).
 * `perfanno.autoReload`: Watches `perf.data` changes and automatically reconverts and reloads it (enabled by default).
 
 ---
