@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as vscode from 'vscode';
 
 export namespace LineHighlighter {
@@ -9,15 +10,28 @@ export namespace LineHighlighter {
 
 	const highlightsStore: Map<string, HighlightInfo[]> = new Map();
 
-	function documentKey(filePath: string): string {
+	function normalizePath(filePath: string): string {
 		const normalized = filePath.replaceAll('\\', '/');
 		return /^[A-Z]:\//.test(normalized) ? normalized[0].toLowerCase() + normalized.slice(1) : normalized;
+	}
+
+	// Matches perfInfo.ts's sourceFileKey, which stores highlights under the
+	// realpath-resolved key. Without resolving symlinks the same way here,
+	// lookups miss whenever the editor's fsPath differs from its realpath.
+	function documentKey(filePath: string): string {
+		try {
+			return normalizePath(fs.realpathSync(filePath));
+		} catch {
+			return normalizePath(filePath);
+		}
 	}
 
 	// Apply stored highlights when a text editor is activated
 	export function applyHighlights(editor: vscode.TextEditor): void {
 		const uri = documentKey(editor.document.uri.fsPath);
+
 		const highlights = highlightsStore.get(uri);
+
 		if (highlights) {
 			highlights.forEach(highlight => {
 				editor.setDecorations(highlight.decorationType, [highlight.range]);

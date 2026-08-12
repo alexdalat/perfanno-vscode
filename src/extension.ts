@@ -79,12 +79,23 @@ function yieldToProgressUi(): Promise<void> {
 	return new Promise(resolve => setTimeout(resolve, 0));
 }
 
+async function writeParsedReportJson(filePath: string, data: perfInfo.PerfData): Promise<void> {
+	try {
+		await fs.promises.writeFile(`${filePath}.json`, JSON.stringify(data, null, 2));
+	} catch (error) {
+		console.error(`Perfanno: failed to write parsed report JSON: ${error instanceof Error ? error.message : String(error)}`);
+	}
+}
+
 async function loadPerfReport(filePath: string, workspaceFolder: string, progress?: ProgressReporter): Promise<number> {
 	progress?.report({ message: 'Reading report…' });
 	await yieldToProgressUi();
 	syncConfig();
 	progress?.report({ message: 'Parsing stack traces…' });
-	const totalCount = perfInfo.loadTraces(perfInfo.perfCallgraphFile(filePath));
+	const perfData = perfInfo.perfCallgraphFile(filePath);
+	progress?.report({ message: 'Writing parsed report…' });
+	await writeParsedReportJson(filePath, perfData);
+	const totalCount = perfInfo.loadTraces(perfData);
 	progress?.report({ message: 'Applying annotations…' });
 	reannotate();
 	if (filePath.startsWith(workspaceFolder)) {
@@ -168,6 +179,62 @@ function convertPerfData(perfDataPath: string, outputPath: string, token: vscode
 	});
 }
 
+const PERF_MAX_SAMPLE_RATE_PATH = '/proc/sys/kernel/perf_event_max_sample_rate';
+
+async function getMaxSampleRate(): Promise<number | undefined> {
+	if (process.platform !== 'linux') {
+		return undefined;
+	}
+	try {
+		const contents = await fs.promises.readFile(PERF_MAX_SAMPLE_RATE_PATH, 'utf-8');
+		const value = parseInt(contents.trim(), 10);
+		return Number.isNaN(value) ? undefined : value;
+	} catch {
+		return undefined;
+	}
+}
+
+function getRequestedSampleRate(perfDataPath: string): Promise<number | undefined> {
+	return new Promise((resolve) => {
+		const perfProcess = spawn('perf', ['evlist', '-v', '-i', perfDataPath], { cwd: path.dirname(perfDataPath) });
+		let stdout = '';
+		perfProcess.stdout.on('data', (data: Buffer) => { stdout += data.toString(); });
+		perfProcess.on('error', () => resolve(undefined));
+		perfProcess.on('close', () => {
+			const matches = [...stdout.matchAll(/sample_freq\s*\}:\s*(\d+)/g)];
+			if (matches.length === 0) {
+				resolve(undefined);
+				return;
+			}
+			resolve(Math.max(...matches.map(m => parseInt(m[1], 10))));
+		});
+	});
+}
+
+// Warns (with a fix-it action) when perf.data was recorded at a sample rate that exceeds
+// kernel.perf_event_max_sample_rate, since perf silently caps the rate in that case,
+// reducing sample coverage.
+async function warnIfSampleRateCapped(perfDataPath: string): Promise<void> {
+	const [requested, max] = await Promise.all([
+		getRequestedSampleRate(perfDataPath),
+		getMaxSampleRate(),
+	]);
+	if (requested === undefined || max === undefined || requested <= max) {
+		return;
+	}
+
+	const fixAction = 'Open terminal to fix';
+	const selection = await vscode.window.showWarningMessage(
+		`Perfanno: perf.data was recorded at ${requested}Hz, but kernel.perf_event_max_sample_rate is ${max}Hz. Samples were likely capped, reducing coverage.`,
+		fixAction
+	);
+	if (selection === fixAction) {
+		const terminal = vscode.window.createTerminal('Perfanno: fix sample rate');
+		terminal.show();
+		terminal.sendText(`sudo sysctl kernel.perf_event_max_sample_rate=${requested}`, false);
+	}
+}
+
 async function findPerfData(workspaceFolder: vscode.WorkspaceFolder): Promise<vscode.Uri | undefined> {
 	const files = await vscode.workspace.findFiles(
 		new vscode.RelativePattern(workspaceFolder, '**/perf.data'),
@@ -213,6 +280,8 @@ async function autoLoadPerfData(showMissingFileMessage: boolean, requestedPerfDa
 			if (token.isCancellationRequested) {
 				return;
 			}
+
+			void warnIfSampleRateCapped(perfData.fsPath);
 
 			const perfReport = path.join(path.dirname(perfData.fsPath), 'perf.out');
 			progress.report({ message: `Converting ${path.relative(workspaceFolder.uri.fsPath, perfData.fsPath)}…` });

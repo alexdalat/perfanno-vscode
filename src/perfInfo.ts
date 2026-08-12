@@ -378,6 +378,8 @@ export function loadTraces(traces: PerfData): number {
 	M.current_event = '';
 
 	let total = 0;
+	let defaultEvent: string | undefined;
+	let defaultEventCount = -1;
 
 	for (const event in traces) {
 		M.events.push(event);
@@ -386,12 +388,21 @@ export function loadTraces(traces: PerfData): number {
 		M.callgraphs[event] = { nodeInfo, symbols, totalCount, maxCount };
 
 		total += totalCount;
+
+		// Default to the event with the most samples: an event's samples can be dominated by
+		// unresolved kernel/library frames (e.g. an idle CPU cluster on a hybrid CPU), leaving it
+		// with no annotations for the file the user has open even though other events have data.
+		if (totalCount > defaultEventCount) {
+			defaultEvent = event;
+			defaultEventCount = totalCount;
+		}
 	}
 	if (M.events.length === 0 || total === 0) {
 		M.hasData = false;
 		throw new Error('No stack traces found. Check that the report was generated in folded/raw format.');
 	}
 	M.hasData = true;
+	M.current_event = defaultEvent ?? '';
 	return total;
 }
 
