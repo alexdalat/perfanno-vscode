@@ -1,7 +1,7 @@
 # perfanno-vscode
 
 [![Version](https://img.shields.io/github/v/tag/alexdalat/perfanno-vscode?style=for-the-badge&label=version)](https://marketplace.visualstudio.com/items?itemName=alexd.perfanno)
-[![Installs](https://vsmarketplacebadges.dev/installs/alexd.perfanno.svg?style=for-the-badge)](https://marketplace.visualstudio.com/items?itemName=alexd.perfanno)
+[![Installs](https://img.shields.io/visual-studio-marketplace/i/alexd.perfanno?style=for-the-badge&label=installs)](https://marketplace.visualstudio.com/items?itemName=alexd.perfanno)
 [![Tests](https://img.shields.io/github/actions/workflow/status/alexdalat/perfanno-vscode/test.yml?branch=main&style=for-the-badge&label=tests)](https://github.com/alexdalat/perfanno-vscode/actions/workflows/test.yml)
 [![License](https://img.shields.io/github/license/alexdalat/perfanno-vscode?style=for-the-badge)](https://github.com/alexdalat/perfanno-vscode/blob/main/LICENSE)
 
