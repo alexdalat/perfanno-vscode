@@ -18,6 +18,21 @@ suite('Extension Test Suite', () => {
 	});
 
 	suite('C++ perf parser', () => {
+		test('Accepts decimal sample headers and flexible whitespace', () => {
+			const reportPath = path.join(fixturesDir, 'perf-flexible.out');
+			const report = "# Samples: 1.23K of event 'cpu_core/cycles/'\n\t4\tmain C:\\work\\project\\main.cpp:12\n";
+			require('fs').writeFileSync(reportPath, report);
+			try {
+				const parsedData = perfInfo.perfCallgraphFile(reportPath);
+				assert.strictEqual(parsedData['cpu_core/cycles/'].length, 1);
+				assert.deepStrictEqual(parsedData['cpu_core/cycles/'][0].frames[0], {
+					symbol: 'main', file: 'c:/work/project/main.cpp', linenr: 12
+				});
+			} finally {
+				require('fs').unlinkSync(reportPath);
+			}
+		});
+
 		test('Load perf.out', () => {
 			const parsedData = perfInfo.perfCallgraphFile(perfDataPath);
 			
@@ -73,6 +88,18 @@ suite('Extension Test Suite', () => {
 	});
 
 	suite('Python pyspy parser', () => {
+		test('Accepts tab-separated sample counts', () => {
+			const reportPath = path.join(fixturesDir, 'pyspy-flexible.txt');
+			const report = 'work (/tmp/project/main.py:7)\t3\n';
+			require('fs').writeFileSync(reportPath, report);
+			try {
+				const parsedData = perfInfo.pyspyCallgraphFile(reportPath);
+				assert.strictEqual(parsedData['cpu_cycles'][0].count, 3);
+			} finally {
+				require('fs').unlinkSync(reportPath);
+			}
+		});
+
 		test('Load pyspy.txt', () => {
 			const parsedData = perfInfo.pyspyCallgraphFile(pyspyDataPath);
 			
@@ -202,6 +229,14 @@ suite('Extension Test Suite', () => {
 
 			perfInfo.loadTraces(perfInfo.pyspyCallgraphFile(pyspyDataPath));
 			assert.deepStrictEqual(perfInfo.getEvents(), ['cpu_cycles']);
+		});
+
+		test('Loading a new file resets the selected event', () => {
+			perfInfo.setConfig('eventOutputType', perfInfo.EventOutputType.count);
+			perfInfo.loadTraces(perfInfo.perfCallgraphFile(perfDataPath));
+			perfInfo.selectEvent('cycles:P');
+			perfInfo.loadTraces(perfInfo.pyspyCallgraphFile(pyspyDataPath));
+			assert.doesNotThrow(() => perfInfo.addAnnotations());
 		});
 
 		// test('selectEvent rejects unknown events', () => {

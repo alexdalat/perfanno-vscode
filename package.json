@@ -92,6 +92,14 @@
           "type": "boolean",
           "default": false,
           "description": "Collapse each trace to its deepest in-workspace frame (the one that actually has self() time), hiding earlier project parents; external frames are left intact. Reload perf file to apply."
+        },
+        "perfanno.pathMappings": {
+          "type": "object",
+          "default": {},
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Maps source-path prefixes recorded by perf or py-spy to local source-path prefixes. Example: { \"/build/project\": \"${workspaceFolder}\" }."
         }
       }
     }

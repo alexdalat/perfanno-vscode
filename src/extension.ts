@@ -36,8 +36,8 @@ function strToOutputType(str: string): perfInfo.EventOutputType {
 	return outputType;
 }
 
-const config_keys = ['eventOutputType', 'localRelative', 'highlightColor', 'minimumThreshold', 'perfFile', 'pyspyFile', 'onlyLocalLeaf'];
-const config_mod_funcs = [strToOutputType, null, hexToRgb, null, null, null];
+const config_keys = ['eventOutputType', 'localRelative', 'highlightColor', 'minimumThreshold', 'perfFile', 'pyspyFile', 'onlyLocalLeaf', 'pathMappings'];
+const config_mod_funcs = [strToOutputType, null, hexToRgb, null, null, null, null, null];
 
 function is_affected(event: vscode.ConfigurationChangeEvent): boolean {
 	for (let key of config_keys) {

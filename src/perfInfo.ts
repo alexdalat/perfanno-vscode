@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as path from 'path';
 import { LineHighlighter } from './LineHighlighter';
 import { workspace } from 'vscode';
 
@@ -27,6 +28,70 @@ export enum EventOutputType {
 
 let realNames = {} as { [key: string]: string };
 
+/** Use one path representation for profiler frames and VS Code document URIs. */
+function normalizePath(filePath: string): string {
+	const normalized = filePath.replaceAll('\\', '/');
+	return /^[A-Z]:\//.test(normalized) ? normalized[0].toLowerCase() + normalized.slice(1) : normalized;
+}
+
+function existingCanonicalPath(filePath: string): string | undefined {
+	try {
+		return normalizePath(fs.realpathSync(filePath));
+	} catch {
+		return undefined;
+	}
+}
+
+/**
+ * Translate a file stored in a profile into the local workspace when possible.
+ * This covers profiles copied from another machine, provided the repository's
+ * directory name and relative source layout were kept. Explicit pathMappings
+ * take precedence for layouts where that is not true.
+ */
+function sourceFileKey(profilePath: string): string {
+	const normalizedProfilePath = normalizePath(profilePath);
+	if (realNames[normalizedProfilePath]) {
+		return realNames[normalizedProfilePath];
+	}
+
+	const directPath = existingCanonicalPath(profilePath);
+	if (directPath) {
+		return realNames[normalizedProfilePath] = directPath;
+	}
+
+	const mappings = M.config.pathMappings;
+	if (mappings && typeof mappings === 'object' && !Array.isArray(mappings)) {
+		for (const [from, to] of Object.entries(mappings).sort(([a], [b]) => b.length - a.length)) {
+			const sourceRoot = normalizePath(from).replace(/\/$/, '');
+			if (normalizedProfilePath === sourceRoot || normalizedProfilePath.startsWith(sourceRoot + '/')) {
+				const localRoot = (to as string).replaceAll('${workspaceFolder}', workspace.workspaceFolders?.[0].uri.fsPath || '');
+				const mappedPath = path.join(localRoot, normalizedProfilePath.slice(sourceRoot.length));
+				const canonicalPath = existingCanonicalPath(mappedPath);
+				if (canonicalPath) {
+					return realNames[normalizedProfilePath] = canonicalPath;
+				}
+			}
+		}
+	}
+
+	const workspacePath = workspace.workspaceFolders?.[0].uri.fsPath;
+	if (workspacePath) {
+		const localRoot = existingCanonicalPath(workspacePath) || normalizePath(workspacePath);
+		const projectName = path.posix.basename(localRoot);
+		const pathParts = normalizedProfilePath.split('/');
+		const projectIndex = pathParts.lastIndexOf(projectName);
+		if (projectIndex >= 0) {
+			const candidate = path.join(localRoot, ...pathParts.slice(projectIndex + 1));
+			const canonicalPath = existingCanonicalPath(candidate);
+			if (canonicalPath) {
+				return realNames[normalizedProfilePath] = canonicalPath;
+			}
+		}
+	}
+
+	return realNames[normalizedProfilePath] = normalizedProfilePath;
+}
+
 export interface Frame {
 	symbol?: string;
 	file?: string;
@@ -54,18 +119,18 @@ export interface PerfData {
 export function perfCallgraphFile(perfDataPath: string): PerfData {
 	const result: PerfData = {};
 	let currentEvent: string | undefined;
-	let workspace_dir = workspace.workspaceFolders?.[0].uri.fsPath.replaceAll("\\", "/");
+	const workspaceDir = workspace.workspaceFolders?.[0].uri.fsPath;
 
 	const lines = fs.readFileSync(perfDataPath, 'utf-8').split(/\r?\n/);
 	for (const line of lines) {
-		const numEventMatch = line.match(/# Samples: (\d+[KMB]?)\s+of event '(.*)'/);
+		const numEventMatch = line.match(/^\s*#\s*Samples:\s+[\d.,]+(?:[KMB])?\s+of event\s+'(.+?)'/);
 
 		if (numEventMatch) {
-			const [, num, event] = numEventMatch;
-			result[event] = [];
+			const [, event] = numEventMatch;
+			result[event] ??= [];
 			currentEvent = event;
 		} else {
-			const countTraceMatch = line.match(/^(\d+) (.*)$/);
+			const countTraceMatch = line.match(/^\s*(\d+)\s+(.+?)\s*$/);
 
 			if (countTraceMatch) {
 				const [, countStr, traceLine] = countTraceMatch;
@@ -77,14 +142,15 @@ export function perfCallgraphFile(perfDataPath: string): PerfData {
 					const funcs = traceLine.split(';');
 					let lastLocalLeaf;
 					for (const func of funcs) {
-						const funcMatch = func.match(/^(.*?)\s+((?:[a-z]:)?\/.+):(\d+)\s*(?:\(inlined\))?$/);
+						const funcMatch = func.match(/^(.*?)\s+((?:[a-z]:)?[\\/].+):(\d+)\s*(?:\(inlined\))?$/i);
 
 						if (funcMatch) {
-							const [, symbol, file, linenrStr] = funcMatch;
+							const [, symbol, rawFile, linenrStr] = funcMatch;
+							const file = sourceFileKey(rawFile);
 							const linenr = parseInt(linenrStr, 10);
 							if (!M.config.onlyLocalLeaf) {
 								traceData.frames.push({ symbol: symbol || undefined, file, linenr });
-							} else if (workspace_dir && file.startsWith(workspace_dir)) {
+							} else if (workspaceDir && file.startsWith(sourceFileKey(workspaceDir))) {
 								// Only push last leaf (self() trace) if this is a project file
 								lastLocalLeaf = { symbol: symbol || undefined, file, linenr };
 							} else {
@@ -108,7 +174,6 @@ export function perfCallgraphFile(perfDataPath: string): PerfData {
 	}
 
 	M.data = result;
-	M.hasData = true;
 	return M.data;
 }
 
@@ -127,12 +192,12 @@ export function perfCallgraphFile(perfDataPath: string): PerfData {
 export function pyspyCallgraphFile(pyspyDataPath: string): PerfData {
 	let currentEvent: string | undefined = "cpu_cycles";
 	const result: PerfData = { [currentEvent]: [] };
-	let workspace_dir = workspace.workspaceFolders?.[0].uri.fsPath.replaceAll("\\", "/");
+	const workspaceDir = workspace.workspaceFolders?.[0].uri.fsPath;
 
 	const lines = fs.readFileSync(pyspyDataPath, 'utf-8').split(/\r?\n/);
 	for (const line of lines) {
 
-		const countTraceMatch = line.match(/^(.+) (\d+)$/);
+		const countTraceMatch = line.match(/^\s*(.+?)\s+(\d+)\s*$/);
 
 		if (countTraceMatch) {
 			const [, traceLine, countStr] = countTraceMatch;
@@ -144,16 +209,16 @@ export function pyspyCallgraphFile(pyspyDataPath: string): PerfData {
 				const funcs = traceLine.split(';');
 				let lastLocalLeaf;
 				for (const func of funcs) {
-					const funcMatch = func.match(/^(.*?)\s+\(((?:\/|\\).+):(\d+)\)$/);
+					const funcMatch = func.match(/^(.*?)\s+\(((?:[a-z]:)?[\\/].+):(\d+)\)$/i);
 
 					if (funcMatch) {
-						let [, symbol, file, linenrStr] = funcMatch;
-						file = file.replaceAll("\\", "/");
+						const [, symbol, rawFile, linenrStr] = funcMatch;
+						const file = sourceFileKey(rawFile);
 
 						const linenr = parseInt(linenrStr, 10);
 						if (!M.config.onlyLocalLeaf) {
 							traceData.frames.push({ symbol: symbol || undefined, file, linenr });
-						} else if (workspace_dir && file.startsWith(workspace_dir) && !/\/\.?venv\//.test(file)) {
+						} else if (workspaceDir && file.startsWith(sourceFileKey(workspaceDir)) && !/\/\.?venv\//.test(file)) {
 							// Only push last leaf (self() trace) if this is a project file,
 							// that is related to this project (not in venv for python code)
 							lastLocalLeaf = { symbol: symbol || undefined, file, linenr };
@@ -175,7 +240,6 @@ export function pyspyCallgraphFile(pyspyDataPath: string): PerfData {
 	}
 
 	M.data = result;
-	M.hasData = true;
 	return M.data;
 }
 
@@ -193,31 +257,16 @@ export function frame_unpack(frame: Frame | string): [string | undefined, string
 			return [undefined, "symbol", frame.symbol];
 		}
 
-		if (!realNames[frame.file]) {
-			// Only try to resolve this if it shows even the first semblence of a path
-			if (frame.file.startsWith("/")) {
-				try {
-					realNames[frame.file] = fs.realpathSync(frame.file);
-				} catch (e) {
-					// path resolution failed, just use the original path
-					realNames[frame.file] = frame.file;
-				}
-			} else {
-				// otherwise just fall back as above
-				realNames[frame.file] = frame.file;
-			}
-		}
-
-		return [frame.symbol, realNames[frame.file], frame.linenr];
+		return [frame.symbol, sourceFileKey(frame.file), frame.linenr];
 	}
 
 	// frame is a string
-	const match = frame.match(/^(.*?)\s+((?:[a-z]:)?\/.+):(\d+)\s*(?:\(inlined\))?$/);
+	const match = frame.match(/^(.*?)\s+((?:[a-z]:)?[\\/].+):(\d+)\s*(?:\(inlined\))?$/i);
 	if (match) {
 		const [, symbol, file, linenrStr] = match;
 		const linenr = parseInt(linenrStr, 10);
 
-		return [symbol || undefined, fs.realpathSync(file), linenr];
+		return [symbol || undefined, sourceFileKey(file), linenr];
 	}
 
 	return [undefined, "symbol", frame];
@@ -326,6 +375,7 @@ export function processTraces(traces: TraceData[]): any {
 export function loadTraces(traces: PerfData): number {
 	M.events = [];
 	M.callgraphs = {};
+	M.current_event = '';
 
 	let total = 0;
 
@@ -337,6 +387,11 @@ export function loadTraces(traces: PerfData): number {
 
 		total += totalCount;
 	}
+	if (M.events.length === 0 || total === 0) {
+		M.hasData = false;
+		throw new Error('No stack traces found. Check that the report was generated in folded/raw format.');
+	}
+	M.hasData = true;
 	return total;
 }
 
@@ -415,15 +470,16 @@ export function annotateBuffer(filePath: any, event: string): void {
 		return; // Buffer is not a file.
 	}
 
-	if (!M.callgraphs[event].nodeInfo[filePath]) {
+	const sourcePath = sourceFileKey(filePath);
+	if (!M.callgraphs[event].nodeInfo[sourcePath]) {
 		return; // No annotations for this file.
 	}
 
 	const total_count = M.callgraphs[event].totalCount;
 	const max_count = M.callgraphs[event].maxCount;
 
-	for (const [linenr, info] of Object.entries(M.callgraphs[event].nodeInfo[filePath])) {
-		add_annotation(filePath, event, parseInt(linenr), info, total_count, max_count);
+	for (const [linenr, info] of Object.entries(M.callgraphs[event].nodeInfo[sourcePath])) {
+		add_annotation(sourcePath, event, parseInt(linenr), info, total_count, max_count);
 	}
 }
 

@@ -9,9 +9,14 @@ export namespace LineHighlighter {
 
 	const highlightsStore: Map<string, HighlightInfo[]> = new Map();
 
+	function documentKey(filePath: string): string {
+		const normalized = filePath.replaceAll('\\', '/');
+		return /^[A-Z]:\//.test(normalized) ? normalized[0].toLowerCase() + normalized.slice(1) : normalized;
+	}
+
 	// Apply stored highlights when a text editor is activated
 	export function applyHighlights(editor: vscode.TextEditor): void {
-		const uri = editor.document.uri.fsPath.replaceAll("\\", "\\");
+		const uri = documentKey(editor.document.uri.fsPath);
 		const highlights = highlightsStore.get(uri);
 		if (highlights) {
 			highlights.forEach(highlight => {
@@ -44,9 +49,10 @@ export namespace LineHighlighter {
 
 		// Store decoration type for later access
 		const uri = editor.document.uri;
-		const existingHighlights = highlightsStore.get(uri.fsPath) || [];
+		const key = documentKey(uri.fsPath);
+		const existingHighlights = highlightsStore.get(key) || [];
 		existingHighlights.push({ range, decorationType });
-		highlightsStore.set(uri.fsPath, existingHighlights);
+		highlightsStore.set(key, existingHighlights);
 	}
 
 	// Function to highlight a single line with transparency in a specific document
@@ -54,9 +60,10 @@ export namespace LineHighlighter {
 		const decorationType = getDecoration(add_opts);
 		const range = new vscode.Range(line, 0, line, 0);
 
-		const existingHighlights = highlightsStore.get(uriPath) || [];
+		const key = documentKey(uriPath);
+		const existingHighlights = highlightsStore.get(key) || [];
 		existingHighlights.push({ range, decorationType });
-		highlightsStore.set(uriPath, existingHighlights);
+		highlightsStore.set(key, existingHighlights);
 	}
 
 	// Clean up highlights on extension deactivation

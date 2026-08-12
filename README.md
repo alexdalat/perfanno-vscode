@@ -76,7 +76,7 @@ This command will always be the same. Therefore, if desired, one can chain both 
 
 <br>
 
-3. (optional) If you are doing remote development and want to see the heatmap on your local machine, you can use `scp` to copy the `perf.out` file to your local machine. Then, run `sed -i '' "s:{REMOTE_DIRECTORY}:{LOCAL_DIRECTORY}:g" "perf.out"` to replace any instances of the remote directory with the local directory in the perf report.
+3. (optional) If you are doing remote development and want to see the heatmap on your local machine, copy the `perf.out` file locally. Perfanno automatically recognizes profiles from another checkout when the repository name and source layout match. For other layouts, set `perfanno.pathMappings`, for example: `{ "/remote/project": "${workspaceFolder}" }`.
 
 <br>
 
@@ -122,5 +122,6 @@ py-spy record --full-filenames --idle --native --rate 198 --format raw -o pyspy.
 * `perfanno.highlightColor`: The color of the highlight.
 * `perfanno.minimumThreshold`: The minimum percentage threshold for annotating.
 * `perfanno.onlyLocalLeaf`: Collapse each trace to its deepest in-workspace frame.
+* `perfanno.pathMappings`: Maps recorded source-path prefixes to local source-path prefixes. Use this when a profile was created in a different checkout or machine.
 
 ---
