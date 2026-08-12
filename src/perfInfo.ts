@@ -508,6 +508,58 @@ export function addAnnotations(): void {
 	}
 }
 
+export interface HottestLine {
+	file: string;
+	linenr: number;
+	count: number;
+}
+
+// Finds the line with the highest sample count in the given file.
+//	@param filePath Path to the file to search within.
+//	@param event Event to use. Defaults to the currently selected event.
+//	@return The hottest line's file, line number, and count, or undefined if the file has no data.
+export function getHottestLineInFile(filePath: string, event?: string): HottestLine | undefined {
+	const e = event ?? (M.current_event !== "" ? M.current_event : M.events[0]);
+	const fileInfo = M.callgraphs[e]?.nodeInfo[sourceFileKey(filePath)];
+	if (!fileInfo) {
+		return undefined;
+	}
+
+	let best: HottestLine | undefined;
+	for (const [linenr, info] of Object.entries(fileInfo)) {
+		const line = parseInt(linenr, 10);
+		if (line > 0 && (!best || info.count > best.count)) {
+			best = { file: sourceFileKey(filePath), linenr: line, count: info.count };
+		}
+	}
+	return best;
+}
+
+// Finds the line with the highest sample count across all known files.
+//	@param event Event to use. Defaults to the currently selected event.
+//	@return The hottest line's file, line number, and count, or undefined if there is no data.
+export function getHottestLineInWorkspace(event?: string): HottestLine | undefined {
+	const e = event ?? (M.current_event !== "" ? M.current_event : M.events[0]);
+	const nodeInfo = M.callgraphs[e]?.nodeInfo;
+	if (!nodeInfo) {
+		return undefined;
+	}
+
+	let best: HottestLine | undefined;
+	for (const [file, lines] of Object.entries(nodeInfo)) {
+		if (file === 'symbol') {
+			continue; // pseudo-file for frames without a source location
+		}
+		for (const [linenr, info] of Object.entries(lines)) {
+			const line = parseInt(linenr, 10);
+			if (line > 0 && (!best || info.count > best.count)) {
+				best = { file, linenr: line, count: info.count };
+			}
+		}
+	}
+	return best;
+}
+
 export function isLoaded(): boolean {
 	return M.hasData;
 }

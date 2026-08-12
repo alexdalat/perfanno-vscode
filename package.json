@@ -46,6 +46,14 @@
         "title": "Perfanno: Pick Event"
       },
       {
+        "command": "perfanno.goToHottestLineInFile",
+        "title": "Perfanno: Go to Hottest Line (Current File)"
+      },
+      {
+        "command": "perfanno.goToHottestLineInWorkspace",
+        "title": "Perfanno: Go to Hottest Line (Workspace)"
+      },
+      {
         "command": "perfanno.clearHighlights",
         "title": "Perfanno: Clear Highlights"
       },

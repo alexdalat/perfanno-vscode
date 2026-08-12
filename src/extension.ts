@@ -306,6 +306,24 @@ async function autoLoadPerfData(showMissingFileMessage: boolean, requestedPerfDa
 	}
 }
 
+async function goToHottestLine(hottest: perfInfo.HottestLine | undefined, scopeDescription: string): Promise<void> {
+	if (!perfInfo.isLoaded()) {
+		vscode.window.showInformationMessage('Perfanno: no perf data loaded');
+		return;
+	}
+	if (!hottest) {
+		vscode.window.showInformationMessage(`Perfanno: no hot line found ${scopeDescription}`);
+		return;
+	}
+
+	const doc = await vscode.workspace.openTextDocument(hottest.file);
+	const editor = await vscode.window.showTextDocument(doc);
+	const line = hottest.linenr - 1;
+	const position = new vscode.Position(line, 0);
+	editor.selection = new vscode.Selection(position, position);
+	editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+}
+
 export function activate(context: vscode.ExtensionContext) {
 	let perfDataWatcher: vscode.FileSystemWatcher | undefined;
 	let reloadTimer: ReturnType<typeof setTimeout> | undefined;
@@ -381,6 +399,19 @@ export function activate(context: vscode.ExtensionContext) {
 			LineHighlighter.highlightLineEditor(editor, line);
 			vscode.window.showInformationMessage(`Line ${line + 1} highlighted`);
 		}
+	}));
+
+	context.subscriptions.push(vscode.commands.registerCommand('perfanno.goToHottestLineInFile', async () => {
+		const editor = vscode.window.activeTextEditor;
+		if (!editor) {
+			vscode.window.showInformationMessage('Perfanno: no active editor');
+			return;
+		}
+		await goToHottestLine(perfInfo.getHottestLineInFile(editor.document.uri.fsPath), 'in this file');
+	}));
+
+	context.subscriptions.push(vscode.commands.registerCommand('perfanno.goToHottestLineInWorkspace', async () => {
+		await goToHottestLine(perfInfo.getHottestLineInWorkspace(), 'in the workspace');
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('perfanno.pickEvent', () => {
