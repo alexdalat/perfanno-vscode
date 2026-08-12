@@ -513,6 +513,41 @@ export function selectEvent(event: string): void {
 	M.current_event = event;
 }
 
+export interface SourceLocation {
+	file: string;
+	line: number;
+	count: number;
+}
+
+/**
+ * Returns source locations ordered by their inclusive sample count for the
+ * selected event. Symbol-only frames are deliberately excluded because they
+ * cannot be opened in the editor.
+ */
+export function getHottestLocations(filePath?: string): SourceLocation[] {
+	const event = M.current_event || M.events[0];
+	const callgraph = M.callgraphs[event];
+	if (!callgraph) {
+		return [];
+	}
+
+	const locations: SourceLocation[] = [];
+	const requestedFile = filePath ? sourceFileKey(filePath) : undefined;
+	for (const [file, lines] of Object.entries(callgraph.nodeInfo)) {
+		if (file === 'symbol' || (requestedFile && file !== requestedFile)) {
+			continue;
+		}
+		for (const [line, info] of Object.entries(lines)) {
+			const lineNumber = Number(line);
+			if (Number.isInteger(lineNumber) && lineNumber > 0) {
+				locations.push({ file, line: lineNumber, count: info.count });
+			}
+		}
+	}
+
+	return locations.sort((a, b) => b.count - a.count);
+}
+
 export function setConfig(key: string, value: any): void {
 	M.config[key] = value;
 }

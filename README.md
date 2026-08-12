@@ -1,7 +1,7 @@
 # perfanno-vscode
 
 [![Version](https://img.shields.io/github/v/tag/alexdalat/perfanno-vscode?style=for-the-badge&label=version)](https://marketplace.visualstudio.com/items?itemName=alexd.perfanno)
-[![Installs](https://vsmarketplacebadges.dev/installs/alexd.perfanno.svg?style=for-the-badge)](https://marketplace.visualstudio.com/items?itemName=alexd.perfanno)
+[![Installs](https://img.shields.io/visual-studio-marketplace/i/alexd.perfanno?style=for-the-badge&label=installs)](https://marketplace.visualstudio.com/items?itemName=alexd.perfanno)
 [![Tests](https://img.shields.io/github/actions/workflow/status/alexdalat/perfanno-vscode/test.yml?branch=main&style=for-the-badge&label=tests)](https://github.com/alexdalat/perfanno-vscode/actions/workflows/test.yml)
 [![License](https://img.shields.io/github/license/alexdalat/perfanno-vscode?style=for-the-badge)](https://github.com/alexdalat/perfanno-vscode/blob/main/LICENSE)
 
@@ -111,9 +111,11 @@ py-spy record --full-filenames --idle --native --rate 198 --format raw -o pyspy.
 ## Extension Commands
 
 * `perfanno.readFile`: Prompts for a perf report file and annotates buffers with the perf information.
-* `perfanno.autoLoadPerfData`: Finds a `perf.data`, converts it to `perf.out`, and loads it with progress reporting.
+* `perfanno.autoLoadPerfData`: Finds a `perf.data`, converts it to `perf.out`, and loads it with progress reporting. Default shortcut: `Ctrl+Alt+P` (`Cmd+Option+P` on macOS).
 * `perfanno.readPySpyFile`: Prompts for a py-spy raw output file and annotates buffers with the profiling information.
 * `perfanno.pickEvent`: Select a perf event to annotate.
+* `perfanno.navigateToHottestPathInFile`: Navigates to the highest-sampled source location in the active file. Default shortcut: `Ctrl+Alt+H` (`Cmd+Option+H` on macOS).
+* `perfanno.navigateToHottestPathInWorkspace`: Opens the locally available source location with the highest sample count in the workspace. Default shortcut: `Ctrl+Alt+Shift+H` (`Cmd+Option+Shift+H` on macOS).
 * `perfanno.clearHighlights`: Clears all annotations and highlights.
 * `perfanno.clearStoredFilePaths`: Clears stored default paths to report files.
 * `perfanno.highlightLine`: Highlights the current line. Used to test certain highlighter capabilities.

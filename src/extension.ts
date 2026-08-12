@@ -341,6 +341,56 @@ export function activate(context: vscode.ExtensionContext) {
 
 	}));
 
+	const ensurePerfDataIsLoaded = (): boolean => {
+		if (!perfInfo.isLoaded()) {
+			vscode.window.showInformationMessage("Can't navigate: no perf data loaded");
+			return false;
+		}
+		return true;
+	};
+
+	context.subscriptions.push(vscode.commands.registerCommand('perfanno.navigateToHottestPathInFile', () => {
+		if (!ensurePerfDataIsLoaded()) {
+			return;
+		}
+		const editor = vscode.window.activeTextEditor;
+		if (!editor || editor.document.uri.scheme !== 'file') {
+			vscode.window.showInformationMessage('Perfanno: open a source file to navigate to its hottest path.');
+			return;
+		}
+
+		const hottestLocation = perfInfo.getHottestLocations(editor.document.uri.fsPath)[0];
+		if (!hottestLocation) {
+			vscode.window.showInformationMessage('Perfanno: this file has no profiled source locations.');
+			return;
+		}
+		const position = new vscode.Position(hottestLocation.line - 1, 0);
+		editor.selection = new vscode.Selection(position, position);
+		editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+	}));
+
+	context.subscriptions.push(vscode.commands.registerCommand('perfanno.navigateToHottestPathInWorkspace', async () => {
+		if (!ensurePerfDataIsLoaded()) {
+			return;
+		}
+
+		for (const location of perfInfo.getHottestLocations()) {
+			try {
+				const document = await vscode.workspace.openTextDocument(vscode.Uri.file(location.file));
+				const editor = await vscode.window.showTextDocument(document);
+				const position = new vscode.Position(location.line - 1, 0);
+				editor.selection = new vscode.Selection(position, position);
+				editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+				return;
+			} catch {
+				// Profiles can contain frames from unavailable system or remote files.
+				// Try the next hottest source location instead.
+			}
+		}
+
+		vscode.window.showInformationMessage('Perfanno: no source location from this profile is available locally.');
+	}));
+
 	context.subscriptions.push(vscode.commands.registerCommand('perfanno.readFile', async () => {
 		const workspaceFolder = vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders[0].uri.fsPath : process.cwd();
 		let fileStr = undefined;

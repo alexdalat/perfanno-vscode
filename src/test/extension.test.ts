@@ -191,6 +191,23 @@ suite('Extension Test Suite', () => {
 			assert.strictEqual(symbols['/fake/main.cpp']['work'].count, 10);
 		});
 
+		test('Returns source locations ordered by sample count', () => {
+			perfInfo.loadTraces({
+				cycles: [
+					{ count: 4, frames: [{ symbol: 'slow', file: '/fake/slow.cpp', linenr: 20 }] },
+					{ count: 9, frames: [{ symbol: 'hot', file: '/fake/hot.cpp', linenr: 10 }] },
+				]
+			});
+
+			assert.deepStrictEqual(perfInfo.getHottestLocations().slice(0, 2), [
+				{ file: '/fake/hot.cpp', line: 10, count: 9 },
+				{ file: '/fake/slow.cpp', line: 20, count: 4 },
+			]);
+			assert.deepStrictEqual(perfInfo.getHottestLocations('/fake/slow.cpp'), [
+				{ file: '/fake/slow.cpp', line: 20, count: 4 },
+			]);
+		});
+
 		test('Caller/callee counts', () => {
 			const traces: perfInfo.TraceData[] = [
 				{ count: 7, frames: [

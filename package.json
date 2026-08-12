@@ -44,6 +44,14 @@
         "title": "Perfanno: Pick Event"
       },
       {
+        "command": "perfanno.navigateToHottestPathInFile",
+        "title": "Perfanno: Navigate to the Hottest Path in File"
+      },
+      {
+        "command": "perfanno.navigateToHottestPathInWorkspace",
+        "title": "Perfanno: Navigate to the Hottest Path in Workspace"
+      },
+      {
         "command": "perfanno.clearHighlights",
         "title": "Perfanno: Clear Highlights"
       },
@@ -54,6 +62,24 @@
       {
         "command": "perfanno.clearStoredFilePaths",
         "title": "Perfanno: Clear stored default paths to report files"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "perfanno.navigateToHottestPathInFile",
+        "key": "ctrl+alt+h",
+        "mac": "cmd+alt+h",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "perfanno.navigateToHottestPathInWorkspace",
+        "key": "ctrl+alt+shift+h",
+        "mac": "cmd+alt+shift+h"
+      },
+      {
+        "command": "perfanno.autoLoadPerfData",
+        "key": "ctrl+alt+p",
+        "mac": "cmd+alt+p"
       }
     ],
     "configuration": {
@@ -125,7 +151,7 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "vscode-test",
-    "package": "vsce package",
+    "package": "vsce package --no-dependencies",
     "package:minor": "vsce package minor",
     "package:major": "vsce package major",
     "publish": "vsce publish",
