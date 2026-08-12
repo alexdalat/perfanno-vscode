@@ -36,6 +36,10 @@
         "title": "Perfanno: Read File"
       },
       {
+        "command": "perfanno.autoLoadPerfData",
+        "title": "Perfanno: Auto Load perf.data"
+      },
+      {
         "command": "perfanno.pickEvent",
         "title": "Perfanno: Pick Event"
       },
@@ -100,6 +104,16 @@
             "type": "string"
           },
           "description": "Maps source-path prefixes recorded by perf or py-spy to local source-path prefixes. Example: { \"/build/project\": \"${workspaceFolder}\" }."
+        },
+        "perfanno.autoLoad": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically find, convert, and load perf.data when Perfanno activates. The conversion runs perf report and writes perf.out beside perf.data."
+        },
+        "perfanno.autoReload": {
+          "type": "boolean",
+          "default": true,
+          "description": "Watch perf.data for changes and automatically reconvert and reload it. On Linux, VS Code uses the platform file watcher (inotify)."
         }
       }
     }

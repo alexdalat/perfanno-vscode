@@ -3,6 +3,7 @@ import * as perfInfo from './perfInfo';
 import { LineHighlighter } from './LineHighlighter';
 import * as fs from 'fs';
 import * as path from 'path';
+import { spawn } from 'child_process';
 
 // from: https://stackoverflow.com/questions/70346445/how-to-get-all-opened-files-with-vscode-api
 export function getAllActiveBuffers(): vscode.TextEditor[] {
@@ -36,8 +37,11 @@ function strToOutputType(str: string): perfInfo.EventOutputType {
 	return outputType;
 }
 
-const config_keys = ['eventOutputType', 'localRelative', 'highlightColor', 'minimumThreshold', 'perfFile', 'pyspyFile', 'onlyLocalLeaf', 'pathMappings'];
-const config_mod_funcs = [strToOutputType, null, hexToRgb, null, null, null, null, null];
+const config_keys = ['eventOutputType', 'localRelative', 'highlightColor', 'minimumThreshold', 'perfFile', 'pyspyFile', 'onlyLocalLeaf', 'pathMappings', 'autoLoad', 'autoReload'];
+const config_mod_funcs = [strToOutputType, null, hexToRgb, null, null, null, null, null, null, null];
+
+let autoLoadRunning = false;
+let queuedPerfData: vscode.Uri | undefined;
 
 function is_affected(event: vscode.ConfigurationChangeEvent): boolean {
 	for (let key of config_keys) {
@@ -69,7 +73,220 @@ function reannotate() {
 	}
 }
 
+type ProgressReporter = vscode.Progress<{ message?: string; increment?: number }>;
+
+function yieldToProgressUi(): Promise<void> {
+	return new Promise(resolve => setTimeout(resolve, 0));
+}
+
+async function loadPerfReport(filePath: string, workspaceFolder: string, progress?: ProgressReporter): Promise<number> {
+	progress?.report({ message: 'Reading report…' });
+	await yieldToProgressUi();
+	syncConfig();
+	progress?.report({ message: 'Parsing stack traces…' });
+	const totalCount = perfInfo.loadTraces(perfInfo.perfCallgraphFile(filePath));
+	progress?.report({ message: 'Applying annotations…' });
+	reannotate();
+	if (filePath.startsWith(workspaceFolder)) {
+		progress?.report({ message: 'Saving report path…' });
+		await vscode.workspace.getConfiguration('perfanno').update(
+			'perfFile',
+			path.relative(workspaceFolder, filePath),
+			vscode.ConfigurationTarget.Workspace
+		);
+	}
+	return totalCount;
+}
+
+async function loadPySpyReport(filePath: string, workspaceFolder: string, progress: ProgressReporter): Promise<number> {
+	progress.report({ message: 'Reading py-spy report…' });
+	await yieldToProgressUi();
+	syncConfig();
+	progress.report({ message: 'Parsing stack traces…' });
+	const totalCount = perfInfo.loadTraces(perfInfo.pyspyCallgraphFile(filePath));
+	progress.report({ message: 'Applying annotations…' });
+	reannotate();
+	if (filePath.startsWith(workspaceFolder)) {
+		progress.report({ message: 'Saving report path…' });
+		await vscode.workspace.getConfiguration('perfanno').update(
+			'pyspyFile',
+			path.relative(workspaceFolder, filePath),
+			vscode.ConfigurationTarget.Workspace
+		);
+	}
+	return totalCount;
+}
+
+function convertPerfData(perfDataPath: string, outputPath: string, token: vscode.CancellationToken): Promise<void> {
+	return new Promise((resolve, reject) => {
+		const temporaryPath = `${outputPath}.${process.pid}.${Date.now()}.tmp`;
+		const output = fs.createWriteStream(temporaryPath);
+		const args = ['report', '-g', 'folded,0,caller,srcline,branch,count', '--no-children', '--full-source-path', '--stdio', '-i', perfDataPath];
+		const perfProcess = spawn('perf', args, { cwd: path.dirname(perfDataPath) });
+		let stderr = '';
+		let cancelled = false;
+
+		const cancellation = token.onCancellationRequested(() => {
+			cancelled = true;
+			perfProcess.kill();
+		});
+		perfProcess.stdout.pipe(output);
+		perfProcess.stderr.on('data', (data: Buffer) => { stderr += data.toString(); });
+		perfProcess.on('error', error => finish(error));
+		perfProcess.on('close', code => {
+			if (cancelled) {
+				finish(new Error('Perf report conversion cancelled.'));
+			} else if (code !== 0) {
+				finish(new Error(`perf report failed (exit ${code}): ${stderr.trim() || 'no error output'}`));
+			} else {
+				finish();
+			}
+		});
+		output.on('error', error => finish(error));
+
+		let finished = false;
+		function finish(error?: Error): void {
+			if (finished) {
+				return;
+			}
+			finished = true;
+			cancellation.dispose();
+			output.end(async () => {
+				if (error) {
+					try { await fs.promises.unlink(temporaryPath); } catch { /* no temporary file to remove */ }
+					reject(error);
+					return;
+				}
+				try {
+					await fs.promises.rename(temporaryPath, outputPath);
+					resolve();
+				} catch (renameError) {
+					reject(renameError);
+				}
+			});
+		}
+	});
+}
+
+async function findPerfData(workspaceFolder: vscode.WorkspaceFolder): Promise<vscode.Uri | undefined> {
+	const files = await vscode.workspace.findFiles(
+		new vscode.RelativePattern(workspaceFolder, '**/perf.data'),
+		'**/{.git,node_modules,.venv}/**',
+		20
+	);
+	if (files.length === 0) {
+		return undefined;
+	}
+	files.sort((a, b) => a.fsPath.length - b.fsPath.length);
+	return files[0];
+}
+
+async function autoLoadPerfData(showMissingFileMessage: boolean, requestedPerfData?: vscode.Uri): Promise<void> {
+	if (autoLoadRunning) {
+		queuedPerfData = requestedPerfData;
+		return;
+	}
+	autoLoadRunning = true;
+	const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+	if (!workspaceFolder) {
+		if (showMissingFileMessage) {
+			vscode.window.showErrorMessage('Perfanno: open a workspace to search for perf.data.');
+		}
+		autoLoadRunning = false;
+		return;
+	}
+
+	try {
+		await vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: 'Perfanno: loading perf.data',
+			cancellable: true
+		}, async (progress, token) => {
+			progress.report({ message: 'Searching workspace…', increment: 10 });
+			const perfData = requestedPerfData || await findPerfData(workspaceFolder);
+			if (!perfData) {
+				if (showMissingFileMessage) {
+					vscode.window.showInformationMessage('Perfanno: no perf.data found in this workspace.');
+				}
+				return;
+			}
+			if (token.isCancellationRequested) {
+				return;
+			}
+
+			const perfReport = path.join(path.dirname(perfData.fsPath), 'perf.out');
+			progress.report({ message: `Converting ${path.relative(workspaceFolder.uri.fsPath, perfData.fsPath)}…` });
+			await convertPerfData(perfData.fsPath, perfReport, token);
+			if (token.isCancellationRequested) {
+				return;
+			}
+			progress.report({ message: 'Conversion complete', increment: 65 });
+			const totalCount = await loadPerfReport(perfReport, workspaceFolder.uri.fsPath, progress);
+			progress.report({ message: 'Complete', increment: 25 });
+			vscode.window.showInformationMessage(`Perfanno: converted and loaded ${totalCount} traces from ${perfData.fsPath}`);
+		});
+	} catch (error) {
+		vscode.window.showErrorMessage(`Perfanno: ${error instanceof Error ? error.message : String(error)}`);
+	} finally {
+		autoLoadRunning = false;
+		if (queuedPerfData) {
+			const nextPerfData = queuedPerfData;
+			queuedPerfData = undefined;
+			void autoLoadPerfData(false, nextPerfData);
+		}
+	}
+}
+
 export function activate(context: vscode.ExtensionContext) {
+	let perfDataWatcher: vscode.FileSystemWatcher | undefined;
+	let reloadTimer: ReturnType<typeof setTimeout> | undefined;
+
+	const configureAutoReload = () => {
+		perfDataWatcher?.dispose();
+		perfDataWatcher = undefined;
+		if (reloadTimer) {
+			clearTimeout(reloadTimer);
+			reloadTimer = undefined;
+		}
+		if (!vscode.workspace.getConfiguration('perfanno').get<boolean>('autoReload')) {
+			return;
+		}
+
+		const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+		if (!workspaceFolder) {
+			return;
+		}
+		perfDataWatcher = vscode.workspace.createFileSystemWatcher(
+			new vscode.RelativePattern(workspaceFolder, '**/perf.data'),
+			false,
+			false,
+			false
+		);
+		const scheduleReload = (perfData: vscode.Uri) => {
+			if (reloadTimer) {
+				clearTimeout(reloadTimer);
+			}
+			// perf record may emit several close-together writes; wait for it to settle.
+			reloadTimer = setTimeout(() => {
+				reloadTimer = undefined;
+				void autoLoadPerfData(false, perfData);
+			}, 1000);
+		};
+		context.subscriptions.push(perfDataWatcher.onDidCreate(scheduleReload));
+		context.subscriptions.push(perfDataWatcher.onDidChange(scheduleReload));
+	};
+
+	configureAutoReload();
+	context.subscriptions.push({ dispose: () => {
+		perfDataWatcher?.dispose();
+		if (reloadTimer) {
+			clearTimeout(reloadTimer);
+		}
+	} });
+
+	if (vscode.workspace.getConfiguration('perfanno').get<boolean>('autoLoad')) {
+		void autoLoadPerfData(false);
+	}
 
 	// when changing text editor, apply highlights
 	vscode.window.onDidChangeActiveTextEditor(editor => {
@@ -80,6 +297,9 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// when changing configuration, reapply highlights
 	context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(event => {
+		if (event.affectsConfiguration('perfanno.autoReload')) {
+			configureAutoReload();
+		}
 		if (is_affected(event) && perfInfo.isLoaded()) {
 			reannotate();
 		}
@@ -156,18 +376,23 @@ export function activate(context: vscode.ExtensionContext) {
 		if (fileStr === undefined) {
 			vscode.window.showErrorMessage('No file selected');
 			return;
-		} else if (fileStr.startsWith(workspaceFolder)) {
-			// Store the file we loaded traces from for easy re-use in the future
-			await vscode.workspace.getConfiguration('perfanno').update(
-				'perfFile',
-				path.relative(workspaceFolder, fileStr),
-				vscode.ConfigurationTarget.Workspace
-			);
 		}
 
-		const totalCount = perfInfo.loadTraces(perfInfo.perfCallgraphFile(fileStr));
-		reannotate();
+		const totalCount = await vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: 'Perfanno: loading perf report',
+			cancellable: false
+		}, async progress => {
+			progress.report({ increment: 10 });
+			const count = await loadPerfReport(fileStr, workspaceFolder, progress);
+			progress.report({ message: 'Complete', increment: 90 });
+			return count;
+		});
 		vscode.window.showInformationMessage(`Loaded ${totalCount} traces from ${fileStr}`);
+	}));
+
+	context.subscriptions.push(vscode.commands.registerCommand('perfanno.autoLoadPerfData', async () => {
+		await autoLoadPerfData(true);
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('perfanno.readPySpyFile', async () => {
@@ -214,8 +439,16 @@ export function activate(context: vscode.ExtensionContext) {
 			);
 		}
 
-		const totalCount = perfInfo.loadTraces(perfInfo.pyspyCallgraphFile(fileStr));
-		reannotate();
+		const totalCount = await vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: 'Perfanno: loading py-spy report',
+			cancellable: false
+		}, async progress => {
+			progress.report({ increment: 10 });
+			const count = await loadPySpyReport(fileStr, workspaceFolder, progress);
+			progress.report({ message: 'Complete', increment: 90 });
+			return count;
+		});
 		vscode.window.showInformationMessage(`Loaded ${totalCount} traces from ${fileStr}`);
 	}));
 
