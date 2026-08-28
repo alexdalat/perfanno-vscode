@@ -21,7 +21,7 @@
 #include <functional>
 
 
-// Helper function to perform a simple network request to example.com
+// Simple helper to perform a network request to example.com
 void simple_network_request() {
   int sock = socket(AF_INET, SOCK_STREAM, 0);
   struct hostent* host = gethostbyname("example.com");
@@ -48,14 +48,14 @@ void for_loop_section() {
     vec[i] = i;
   }
   vec.clear();
-  // about 150ms +- 20ms
+
 }
 
 
 // Section: Sleep
 void sleep_section() {
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
-  // about 200ms +- 10ms
+
 }
 
 
@@ -78,7 +78,7 @@ void threading_section() {
   // 0ms
   
   t.join();
-  // about 200ms +- 10ms
+
 }
 
 

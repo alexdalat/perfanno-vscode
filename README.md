@@ -5,20 +5,20 @@
 [![Tests](https://img.shields.io/github/actions/workflow/status/alexdalat/perfanno-vscode/test.yml?branch=main&style=for-the-badge&label=tests)](https://github.com/alexdalat/perfanno-vscode/actions/workflows/test.yml)
 [![License](https://img.shields.io/github/license/alexdalat/perfanno-vscode?style=for-the-badge)](https://github.com/alexdalat/perfanno-vscode/blob/main/LICENSE)
 
-Perfanno-vscode allows users to annotate buffers using perf or [py-spy](https://github.com/benfred/py-spy) output information. The result is a beautiful heatmap showing developers where performance bottlenecks are slowing down their program.
+Perfanno-vscode allows users to annotate buffers using [perf](https://perfwiki.github.io/main/) or [py-spy](https://github.com/benfred/py-spy) output information. The result is a beautiful heatmap showing developers where performance bottlenecks are slowing down their program.
 
-![Example](https://github.com/alexdalat/perfanno-vscode/blob/main/example.png?raw=true)
+<table>
+  <tr>
+    <th align="center">C++ with <code>perf</code></th>
+    <th align="center">Python with <code>py-spy</code></th>
+  </tr>
+  <tr>
+    <td width="50%"><img src="assets/perf-example.png" alt="perf example" width="100%"></td>
+    <td width="50%"><img src="assets/pyspy-example.png" alt="py-spy example" width="100%"></td>
+  </tr>
+</table>
 
-![Py-Spy Example](https://github.com/alexdalat/perfanno-vscode/blob/main/pyspy-example.png?raw=true)
-from https://github.com/MalTeeez/python-perfanno-example
-
-## Notes
-
-* **Most of the processing algorithm is taken directly from https://github.com/t-troebst/perfanno.nvim. I am not the original author of the code. I ported it to vscode/typescript and added a few features.**
-* This extension is still in beta. It is not expansive in any way, but it does the job simply and effectively.
-* Only C++ programs on MacOS (with perf on Ubuntu) have been tested. But anything that perf can profile should work.
-* Python profiling via [py-spy](https://github.com/benfred/py-spy) raw output is also supported.
-* Please report any issues you may find.
+<!--py-spy example from https://github.com/MalTeeez/python-perfanno-example-->
 
 ---
 
@@ -30,24 +30,10 @@ from https://github.com/MalTeeez/python-perfanno-example
 perf record --call-graph dwarf ./my_program --some-arg < some_input_etc
 ```
 
-<sub>
-  
-optionally, use the following alias by adding it to your `.bashrc` or `.zshrc`:
-
-```bash
-alias perf_record="perf record --call-graph dwarf"
-```
-
-and run:
-`perf_record ./my_program --some-arg < some_input_etc`
-
-</sub>
-<br>
-
 *Customization*:
- * `-e` flag can be used to specify the event to profile. By default, it records cpu-cycles. See `perf list` for a list of events.
+ * `-e` flag can be used to specify the event to profile. By default, it records cpu-cycles.
  * `-F` flag can be used to specify the frequency of the event. For example, `-F 1000` will sample every 1000 events.
- * And many more. See `man perf-record` for more information.
+ * And many more options. See [this page](https://manpages.ubuntu.com/manpages/bionic/man1/perf-record.1.html) for more information.
 
 <br>
 
@@ -57,36 +43,54 @@ and run:
 perf report -g folded,0,caller,srcline,branch,count --no-children --full-source-path --stdio -i perf.data > perf.out
 ```
 
-<sub>
-again, you can also use the following alias:
+<details>
+<summary><b>Remote development (optional)</b></summary>
+ If you are doing remote development and want to see the heatmap on your local machine, you can use `scp` to copy the `perf.out` file to your local machine. Then, run `sed -i '' "s:{REMOTE_DIRECTORY}:{LOCAL_DIRECTORY}:g" "perf.out"` to replace any instances of the remote directory with the local directory in the perf report.
+</details>
+
+<br>
+
+3. Open a source file in vscode and run the `perfanno.readFile` (`Perfanno: Read File`) command using the command palette. Select the `perf.out` file generated in the previous step. Success!
+
+<br>
+
+<details>
+<summary><b>Optional: shell aliases</b></summary>
+
+<br>
+
+Add these to your `.bashrc` or `.zshrc`:
 
 ```bash
+alias perf_record="perf record --call-graph dwarf"
 alias perf_report="perf report -g folded,0,caller,srcline,branch,count --no-children --full-source-path --stdio -i perf.data > perf.out"
 ```
 
-and run: 
+Then step 1 becomes:
 
-`perf_report`
+```bash
+perf_record ./my_program --some-arg < some_input_etc
+```
 
-This command will always be the same. Therefore, if desired, one can chain both commands like so:
+and step 2 becomes:
 
-`perf_record ./my_program --some-arg < some_input_etc && perf_report`
+```bash
+perf_report
+```
 
-</sub>
+The report command is always the same, so both steps can be chained:
 
-<br>
+```bash
+perf_record ./my_program --some-arg < some_input_etc && perf_report
+```
 
-3. (optional) If you are doing remote development and want to see the heatmap on your local machine, you can use `scp` to copy the `perf.out` file to your local machine. Then, run `sed -i '' "s:{REMOTE_DIRECTORY}:{LOCAL_DIRECTORY}:g" "perf.out"` to replace any instances of the remote directory with the local directory in the perf report.
-
-<br>
-
-4. Open a source file in vscode and run the `perfanno.readFile` (`Perfanno: Read File`) command using the command palette. Select the `perf.out` file generated in the previous step. Success!
+</details>
 
 ---
 
 ## Py-Spy Workflow
 
-Perfanno also supports [py-spy](https://github.com/benfred/py-spy) raw output for profiling Python programs. See [https://github.com/MalTeeez/python-perfanno-example/blob/main/tools/pyspy.sh](https://github.com/MalTeeez/python-perfanno-example/blob/main/tools/pyspy.sh) for an example script.
+Perfanno also supports [py-spy](https://github.com/benfred/py-spy) raw output for profiling Python programs. See [an example script](https://github.com/MalTeeez/python-perfanno-example/blob/main/tools/pyspy.sh).
 
 1. Profile your Python program with py-spy using the `raw` format and `--full-filenames`:
 
