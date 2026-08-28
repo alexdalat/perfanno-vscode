@@ -86,7 +86,7 @@ This command will always be the same. Therefore, if desired, one can chain both 
 
 ## Py-Spy Workflow
 
-Perfanno also supports [py-spy](https://github.com/benfred/py-spy) raw output for profiling Python programs. See [https://github.com/MalTeeez/python-perfanno-example/blob/main/tools/perf.sh](https://github.com/MalTeeez/python-perfanno-example/blob/main/tools/perf.sh) for an example script.
+Perfanno also supports [py-spy](https://github.com/benfred/py-spy) raw output for profiling Python programs. See [https://github.com/MalTeeez/python-perfanno-example/blob/main/tools/pyspy.sh](https://github.com/MalTeeez/python-perfanno-example/blob/main/tools/pyspy.sh) for an example script.
 
 1. Profile your Python program with py-spy using the `raw` format and `--full-filenames`:
 

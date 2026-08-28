@@ -11,7 +11,9 @@ export namespace LineHighlighter {
 
 	// Apply stored highlights when a text editor is activated
 	export function applyHighlights(editor: vscode.TextEditor): void {
-		const uri = editor.document.uri.fsPath.replaceAll("\\", "\\");
+		const uri = editor.document.uri.fsPath
+			.replace(/^[a-z](?=:\\)/m, (driveLetter: string) => driveLetter.toUpperCase())
+			.replaceAll("\\", "/");
 		const highlights = highlightsStore.get(uri);
 		if (highlights) {
 			highlights.forEach(highlight => {
