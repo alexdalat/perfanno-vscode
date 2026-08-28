@@ -46,6 +46,9 @@ export interface PerfData {
 const PERF_FUNCTION_PATTERN = new RegExp(/^(.*?)\s+((?:[a-zA-Z]:)?(?:\/|\\).+):(\d+)\s*(?:\(inlined\))?$/, "m");
 const PYSPY_FUNCTION_PATTERN = new RegExp(/^(.*?)\s+\(((?:[a-zA-Z]:)?(?:\/|\\).+):(\d+)\)$/, "m");
 
+// Bucket for frames that have no resolvable file; keyed by symbol instead of line number.
+const SYMBOL_BUCKET = "symbol";
+
 // Reads a perf callgraph file and returns the data.
 //	@param perfDataPath Path to perf callgraph file.
 //	@return Table with the following fields:
@@ -190,11 +193,12 @@ export function pyspyCallgraphFile(pyspyDataPath: string): PerfData {
 //        format.
 export function frame_unpack(frame: Frame | string): [string | undefined, string, number | string] {
 	if (typeof frame !== 'string') {
-		if (!frame.file || frame.linenr == undefined) {
+		if (!frame.file || frame.linenr === undefined) {
 			if (!frame.symbol) {
 				throw new Error("frame_unpack: frame must have symbol");
 			}
-			return [frame.symbol, frame.file || "symbol", frame.linenr || 0];
+			// setting symbol=undefined means its gets skipped in symbol table generation in processTraces (as intended)
+			return [undefined, SYMBOL_BUCKET, frame.symbol];
 		}
 
 		if (!realNames[frame.file]) {
@@ -233,7 +237,7 @@ export function frame_unpack(frame: Frame | string): [string | undefined, string
 //       format expected by frame_unpack.
 //	@return node info, total count, max count, symbols
 export function processTraces(traces: TraceData[]): any {
-	let nodeInfo: any = { symbol: {} };
+	let nodeInfo: any = { [SYMBOL_BUCKET]: {} };
 	let total_count = 0;
 	let max_count = 0;
 	let symbols: any = {};
@@ -260,7 +264,12 @@ export function processTraces(traces: TraceData[]): any {
 				}
 
 				nodeInfo[file][linenr].count += trace.count;
-				max_count = Math.max(max_count, nodeInfo[file][linenr].count);
+
+				// Don't compare "symbols" bucket, since counts arent relevant to interpretability
+				// Must check type because symbol "0x754259c2a1c9" would pass otherwise
+				if (typeof linenr === 'number' && linenr > 0) {
+					max_count = Math.max(max_count, nodeInfo[file][linenr].count);
+				}
 			}
 
 			// This counts how many times a line is called *including* recursive calls.
@@ -325,7 +334,7 @@ export function processTraces(traces: TraceData[]): any {
 }
 
 // Loads given list of stack traces into call graph.
-// 	@param traces Stack traces to be loaded. For format see :help perfanno-extensions.
+// 	@param traces Stack traces to be loaded.
 //	@return Total number of traces loaded.
 export function loadTraces(traces: PerfData): number {
 	M.events = [];
@@ -417,6 +426,10 @@ export function add_annotation(filePath: string, event: string, linenr: number, 
 export function annotateBuffer(filePath: any, event: string): void {
 	if (!filePath) {
 		return; // Buffer is not a file.
+	}
+
+	if (filePath === SYMBOL_BUCKET) {
+		return; // Sentinel bucket, not a real file.
 	}
 
 	if (!M.callgraphs[event].nodeInfo[filePath]) {

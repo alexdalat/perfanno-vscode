@@ -38,7 +38,7 @@ suite('Extension Test Suite', () => {
 			assert.strictEqual(nodeInfo[mainCpp][94].count, 40, "time_function body should have 40 samples");
 			assert.strictEqual(nodeInfo[mainCpp][103].count, 35);
 			assert.strictEqual(nodeInfo[mainCpp][46].count, 28);
-			assert.strictEqual(maxCount, 42, "_start symbol frame should be the hottest node");
+			assert.strictEqual(maxCount, 40, "Hottest annotatable line sets the scale; unresolved symbol frames do not");
 		});
 
 		test('Trace structure', () => {
@@ -92,7 +92,7 @@ suite('Extension Test Suite', () => {
 			assert.strictEqual(nodeInfo[mainPy][62].count, 194, "main() body should have 194 samples");
 			assert.strictEqual(nodeInfo[mainPy][15].count, 194);
 			assert.strictEqual(nodeInfo[mainPy][27].count, 90);
-			assert.strictEqual(maxCount, 222, "Native interpreter frames should be the hottest nodes");
+			assert.strictEqual(maxCount, 194, "Hottest annotatable line sets the scale; native interpreter frames do not");
 		});
 
 		test('Trace structure', () => {
@@ -176,6 +176,24 @@ suite('Extension Test Suite', () => {
 
 			assert.strictEqual(nodeInfo['/fake/main.cpp'][5].out_counts['/fake/util.cpp'][3], 7, "Caller should have out_count to callee");
 			assert.strictEqual(nodeInfo['/fake/util.cpp'][3].in_counts['/fake/main.cpp'][5], 7, "Callee should have in_count from caller");
+		});
+
+		test('Symbol-only frames do not set the annotation scale', () => {
+			const traces: perfInfo.TraceData[] = [
+				{ count: 30, frames: [
+					{ symbol: '_start ??:0' },
+					{ symbol: 'main', file: '/fake/main.cpp', linenr: 5 },
+				]},
+				{ count: 20, frames: [
+					{ symbol: '_start ??:0' },
+				]},
+			];
+
+			const [nodeInfo, , totalCount, maxCount] = perfInfo.processTraces(traces);
+
+			assert.strictEqual(nodeInfo['symbol']['_start ??:0'].count, 50, "Symbol frames should still be counted");
+			assert.strictEqual(totalCount, 50);
+			assert.strictEqual(maxCount, 30, "Scale should come from the hottest line that can be annotated");
 		});
 
 		test('Recursion deduped in count but not rec_count', () => {
