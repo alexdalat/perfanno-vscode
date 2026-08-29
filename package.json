@@ -1,16 +1,16 @@
 {
-  "name": "perfanno",
-  "displayName": "perfanno",
-  "description": "Annotates source code with perf information.",
-  "version": "1.5.2",
+  "name": "vscode-extension-perf-viewer",
+  "displayName": "Perf Viewer",
+  "description": "Annoate Source Code with Perf Information.",
+  "version": "1.6.0",
   "engines": {
     "vscode": "^1.108.0"
   },
-  "publisher": "alexd",
+  "publisher": "arthurafarias",
   "icon": "icon-128.png",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/alexdalat/perfanno-vscode.git"
+    "url": "git+https://github.com/arthurafarias/perfanno-vscode"
   },
   "keywords": [
     "perf",
