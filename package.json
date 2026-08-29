@@ -10,7 +10,7 @@
   "icon": "icon-128.png",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/arthurafarias/perfanno-vscode"
+    "url": "git+https://github.com/arthurafarias/vscode-extension-perf-viewer"
   },
   "keywords": [
     "perf",
@@ -155,6 +155,7 @@
     "@vscode/test-cli": "^0.0.9",
     "@vscode/test-electron": "^2.5.2",
     "eslint": "^8.57.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vsce": "^2.15.0"
   }
 }
